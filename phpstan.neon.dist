@@ -1,0 +1,16 @@
+includes:
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+
+parameters:
+    level: max
+    # Analyse against the minimum supported version so that results do not depend on the runtime.
+    # ext-dba returns resources up to PHP 8.3 and Dba\Connection objects since 8.4; the three places
+    # in CdbSource that touch the handle carry an explicit @phpstan-ignore for that.
+    phpVersion: 80100
+    paths:
+        - src
+        - tests
+        - bin
+        - tools
+        - examples
+    treatPhpDocTypesAsCertain: false
