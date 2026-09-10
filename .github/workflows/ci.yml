@@ -25,7 +25,8 @@ jobs:
           tools: composer:v2
 
       - name: Check the cdb handler
-        run: php -r 'exit(in_array("cdb", dba_handlers(), true) ? 0 : 1);'
+        run: |
+          php -r 'if (!in_array("cdb", dba_handlers(), true)) { fwrite(STDERR, "ext-dba has no cdb handler\n"); exit(1); }'
 
       - name: Install dependencies
         uses: ramsey/composer-install@v3
