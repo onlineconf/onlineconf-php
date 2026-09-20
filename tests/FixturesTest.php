@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Onlineconf\Tests;
 
 use Onlineconf\Cdb\CdbWriter;
+use Onlineconf\Cdb\ConfWriter;
 use Onlineconf\Module;
 use Onlineconf\Source\CdbSource;
 use Onlineconf\Tests\Support\Fixtures;
@@ -130,5 +131,16 @@ final class FixturesTest extends TestCase
         self::assertSame(5.0, $module->getDuration('wss_conn_timeout', 0.0));
         self::assertFalse($module->has('/db.host'), 'paths are opaque: no leading slash is added');
         self::assertSame([], $this->logger->records);
+    }
+
+    public function testConfWriterStampsCurrentTimeByDefault(): void
+    {
+        $file = TempDir::file('.conf');
+        ConfWriter::write($file, 'T', ['/a' => 's1']);
+        $conf = (string) file_get_contents($file);
+        unlink($file);
+
+        self::assertMatchesRegularExpression('/^#! Version \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/m', $conf);
+        self::assertStringContainsString("\n/a 1\n#EOF", $conf);
     }
 }
