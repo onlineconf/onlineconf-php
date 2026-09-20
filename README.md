@@ -381,6 +381,24 @@ php -r '
 vendor/bin/onlineconf-get /my/service/db/host
 ```
 
+The same in PHP, with the child lists generated for you:
+
+```php
+use Onlineconf\Cdb\{CdbReader, CdbWriter, ConfWriter};
+use Onlineconf\Source\ArraySource;
+
+$file = getenv('ONLINECONF_DIR') . '/TREE.cdb';
+CdbWriter::writeValues($file, ['/my/service/db/host' => 'db.local']);   // .cdb, child lists included
+ConfWriter::write(substr($file, 0, -4) . '.conf', 'TREE', CdbReader::read($file)); // human-readable listing
+
+// Editing: CDB is immutable, so read everything, change, regenerate the lists, write again.
+$raw = array_filter(CdbReader::read($file), static fn (string $path): bool => !str_ends_with($path, '/'), ARRAY_FILTER_USE_KEY);
+$raw['/my/service/db/port'] = 's3306';
+CdbWriter::write($file, ArraySource::withChildLists($raw));
+```
+
+`Onlineconf\Cdb` is a toolbox for local modules and tests; production modules come from `onlineconf-updater`.
+
 Or run `onlineconf-updater` against a development server. Only `.cdb` files are read; the text `.conf`
 format is legacy and is not supported.
 
