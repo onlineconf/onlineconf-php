@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Onlineconf\Cdb;
 
+use Onlineconf\Exception\WriteException;
 use Onlineconf\Source\ArraySource;
 
 /**
@@ -17,6 +18,8 @@ final class CdbWriter
 {
     /**
      * @param array<string, string> $raw path → raw value including the type byte
+     *
+     * @throws WriteException when the file cannot be written
      */
     public static function write(string $file, array $raw): void
     {
@@ -26,6 +29,8 @@ final class CdbWriter
         $position = 2048;
 
         foreach ($raw as $key => $value) {
+            // PHP turns numeric array keys into integers; keys are strings
+            $key = (string) $key;
             $hash = self::hash($key);
             $tables[$hash & 255][] = [$hash, $position];
             $records .= pack('VV', strlen($key), strlen($value)) . $key . $value;
@@ -52,12 +57,20 @@ final class CdbWriter
         }
 
         $tmp = $file . '.tmp.' . getmypid();
-        file_put_contents($tmp, $header . $records . $body);
-        rename($tmp, $file);
+        if (@file_put_contents($tmp, $header . $records . $body) === false) {
+            throw new WriteException(sprintf('%s: cannot write: %s', $file, error_get_last()['message'] ?? 'unknown error'));
+        }
+        if (@rename($tmp, $file) === false) {
+            $message = error_get_last()['message'] ?? 'unknown error';
+            @unlink($tmp);
+            throw new WriteException(sprintf('%s: cannot write: %s', $file, $message));
+        }
     }
 
     /**
      * @param array<string, string|int|float|bool|array<mixed>|null> $values path → PHP value (see ArraySource::fromValues())
+     *
+     * @throws WriteException when the file cannot be written
      */
     public static function writeValues(string $file, array $values): void
     {

@@ -90,6 +90,8 @@ final class ArraySource implements Source
         $children = [];
 
         foreach ($raw as $path => $_) {
+            // PHP turns numeric array keys into integers; paths are strings
+            $path = (string) $path;
             if (str_ends_with($path, '/')) {
                 throw new \InvalidArgumentException(sprintf('child lists ("<path>/") are generated from the paths, "%s" must not be passed', $path));
             }

@@ -398,6 +398,8 @@ CdbWriter::write($file, ArraySource::withChildLists($raw));
 ```
 
 `Onlineconf\Cdb` is a toolbox for local modules and tests; production modules come from `onlineconf-updater`.
+`CdbReader::read()` throws `OpenException` when the file cannot be opened or is not a complete CDB file, and
+`CdbWriter::write()`/`ConfWriter::write()` throw `WriteException` when the file cannot be written.
 
 Or run `onlineconf-updater` against a development server. Only `.cdb` files are read; the text `.conf`
 format is legacy and is not supported.
