@@ -74,15 +74,17 @@ final class ArraySource implements Source
     }
 
     /**
-     * Adds the child lists for the given raw values.
+     * Adds the child lists ("<path>/" → JSON array of child names) for the given raw values, producing
+     * exactly the set of keys onlineconf-updater writes into a CDB file. Public for tools that rebuild
+     * a module from its raw pairs: strip the existing lists, edit, then call this.
      *
-     * @param array<string, string> $raw
+     * @param array<string, string> $raw path → raw value including the type byte, without child lists
      *
      * @return array<string, string>
      *
      * @throws \InvalidArgumentException when $raw already contains a child list
      */
-    private static function withChildLists(array $raw): array
+    public static function withChildLists(array $raw): array
     {
         /** @var array<string, array<string, true>> $children list path → child names */
         $children = [];
