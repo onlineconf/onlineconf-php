@@ -2,14 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Onlineconf\Tests\Support;
+namespace Onlineconf\Cdb;
 
 use Onlineconf\Source\ArraySource;
 
 /**
- * Writes CDB files for tests (pure PHP implementation of D. J. Bernstein's format).
+ * Writes CDB files (pure PHP implementation of D. J. Bernstein's format), byte-identical to ext-dba's cdb_make.
  *
- * The file is written to a temporary name and renamed into place, exactly like onlineconf-updater does.
+ * The file is written to a temporary name and renamed into place, exactly like onlineconf-updater does,
+ * so a reader never sees a half-written module. Meant for tools that build or edit local modules
+ * (tests, development without onlineconf-updater); production modules come from the updater.
  */
 final class CdbWriter
 {

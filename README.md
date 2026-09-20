@@ -411,8 +411,7 @@ docker/run.sh                                  # interactive shell
 
 Run the tests as a non-root user (the script does): one test makes a file unreadable and is skipped
 for root. CI runs the same checks on PHP 8.1–8.5 (`.github/workflows/ci.yml`). Test fixtures are
-generated at run time by a pure-PHP CDB writer (`tests/Support/CdbWriter.php`) whose output is
-byte-identical to `cdb_make`.
+generated at run time by `Onlineconf\Cdb\CdbWriter`, a pure-PHP CDB writer whose output is byte-identical to `cdb_make` (see "Local development without onlineconf-updater").
 
 ## About this code
 

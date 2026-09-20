@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Onlineconf\Tests\Support;
 
+use Onlineconf\Cdb\CdbWriter;
 use Onlineconf\Source\ArraySource;
 
 /**

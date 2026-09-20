@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Onlineconf\Tests;
 
-use Onlineconf\Tests\Support\CdbWriter;
+use Onlineconf\Cdb\CdbWriter;
 use Onlineconf\Tests\Support\TempDir;
 use PHPUnit\Framework\TestCase;
 
