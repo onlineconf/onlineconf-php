@@ -364,24 +364,14 @@ before the override are not served from it.
 
 ## Local development without onlineconf-updater
 
-Point the client at your own directory and build a CDB there:
+Point the client at your own directory and build a module there with the writers from `Onlineconf\Cdb`:
 
 ```sh
 export ONLINECONF_DIR=$HOME/onlineconf
 mkdir -p $ONLINECONF_DIR
-php -r '
-    $db = dba_open(getenv("ONLINECONF_DIR") . "/TREE.cdb", "n", "cdb_make");
-    dba_insert("/", "j[\"my\"]", $db);
-    dba_insert("/my/", "j[\"service\"]", $db);
-    dba_insert("/my/service/", "j[\"db\"]", $db);
-    dba_insert("/my/service/db/", "j[\"host\"]", $db);
-    dba_insert("/my/service/db/host", "sdb.local", $db);
-    dba_close($db);
-'
-vendor/bin/onlineconf-get /my/service/db/host
 ```
 
-The same in PHP, with the child lists generated for you:
+Build and edit modules in PHP, with the child lists generated for you:
 
 ```php
 use Onlineconf\Cdb\{CdbReader, CdbWriter, ConfWriter};
@@ -395,6 +385,12 @@ ConfWriter::write(substr($file, 0, -4) . '.conf', 'TREE', CdbReader::read($file)
 $raw = array_filter(CdbReader::read($file), static fn (string $path): bool => !str_ends_with($path, '/'), ARRAY_FILTER_USE_KEY);
 $raw['/my/service/db/port'] = 's3306';
 CdbWriter::write($file, ArraySource::withChildLists($raw));
+```
+
+Read the result back:
+
+```sh
+vendor/bin/onlineconf-get /my/service/db/host
 ```
 
 `Onlineconf\Cdb` is a toolbox for local modules and tests; production modules come from `onlineconf-updater`.
