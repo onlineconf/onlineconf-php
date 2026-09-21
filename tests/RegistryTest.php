@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Onlineconf\Tests;
 
+use Onlineconf\Cdb\CdbWriter;
 use Onlineconf\Exception\OpenException;
 use Onlineconf\Onlineconf;
-use Onlineconf\Tests\Support\CdbWriter;
 use Onlineconf\Tests\Support\TempDir;
 use Onlineconf\Tests\Support\TestLogger;
 use PHPUnit\Framework\TestCase;

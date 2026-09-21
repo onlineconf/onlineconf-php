@@ -364,22 +364,38 @@ before the override are not served from it.
 
 ## Local development without onlineconf-updater
 
-Point the client at your own directory and build a CDB there:
+Point the client at your own directory and build a module there with the writers from `Onlineconf\Cdb`:
 
 ```sh
 export ONLINECONF_DIR=$HOME/onlineconf
 mkdir -p $ONLINECONF_DIR
-php -r '
-    $db = dba_open(getenv("ONLINECONF_DIR") . "/TREE.cdb", "n", "cdb_make");
-    dba_insert("/", "j[\"my\"]", $db);
-    dba_insert("/my/", "j[\"service\"]", $db);
-    dba_insert("/my/service/", "j[\"db\"]", $db);
-    dba_insert("/my/service/db/", "j[\"host\"]", $db);
-    dba_insert("/my/service/db/host", "sdb.local", $db);
-    dba_close($db);
-'
+```
+
+Build and edit modules in PHP, with the child lists generated for you:
+
+```php
+use Onlineconf\Cdb\{CdbReader, CdbWriter, ConfWriter};
+use Onlineconf\Source\ArraySource;
+
+$file = getenv('ONLINECONF_DIR') . '/TREE.cdb';
+CdbWriter::writeValues($file, ['/my/service/db/host' => 'db.local']);   // .cdb, child lists included
+ConfWriter::write(substr($file, 0, -4) . '.conf', 'TREE', CdbReader::read($file)); // human-readable listing
+
+// Editing: CDB is immutable, so read everything, change, regenerate the lists, write again.
+$raw = array_filter(CdbReader::read($file), static fn (string $path): bool => !str_ends_with($path, '/'), ARRAY_FILTER_USE_KEY);
+$raw['/my/service/db/port'] = 's3306';
+CdbWriter::write($file, ArraySource::withChildLists($raw));
+```
+
+Read the result back:
+
+```sh
 vendor/bin/onlineconf-get /my/service/db/host
 ```
+
+`Onlineconf\Cdb` is a toolbox for local modules and tests; production modules come from `onlineconf-updater`.
+`CdbReader::read()` throws `OpenException` when the file cannot be opened or is not a complete CDB file, and
+`CdbWriter::write()`/`ConfWriter::write()` throw `WriteException` when the file cannot be written.
 
 Or run `onlineconf-updater` against a development server. Only `.cdb` files are read; the text `.conf`
 format is legacy and is not supported.
@@ -411,8 +427,7 @@ docker/run.sh                                  # interactive shell
 
 Run the tests as a non-root user (the script does): one test makes a file unreadable and is skipped
 for root. CI runs the same checks on PHP 8.1–8.5 (`.github/workflows/ci.yml`). Test fixtures are
-generated at run time by a pure-PHP CDB writer (`tests/Support/CdbWriter.php`) whose output is
-byte-identical to `cdb_make`.
+generated at run time by `Onlineconf\Cdb\CdbWriter`, a pure-PHP CDB writer whose output is byte-identical to `cdb_make` (see "Local development without onlineconf-updater").
 
 ## About this code
 

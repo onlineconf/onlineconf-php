@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Onlineconf\Tests;
 
+use Onlineconf\Cdb\CdbWriter;
 use Onlineconf\Source;
 use Onlineconf\Source\CdbSource;
-use Onlineconf\Tests\Support\CdbWriter;
 use Onlineconf\Tests\Support\TempDir;
 
 final class CdbSourceValuesTest extends ValuesTestCase

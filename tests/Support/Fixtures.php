@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Onlineconf\Tests\Support;
 
+use Onlineconf\Cdb\CdbWriter;
+use Onlineconf\Cdb\ConfWriter;
 use Onlineconf\Source\ArraySource;
 
 /**
@@ -106,7 +108,7 @@ final class Fixtures
     {
         $raw = ArraySource::rawFromValues(self::modules()[$name]);
         CdbWriter::write($basePath . '.cdb', $raw);
-        ConfWriter::write($basePath . '.conf', $name, $raw);
+        ConfWriter::write($basePath . '.conf', $name, $raw, '2026-09-07 00:00:00');
 
         return $raw;
     }

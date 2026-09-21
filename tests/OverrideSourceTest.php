@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Onlineconf\Tests;
 
+use Onlineconf\Cdb\CdbWriter;
 use Onlineconf\Module;
 use Onlineconf\Source\CdbSource;
 use Onlineconf\Source\OverrideSource;
-use Onlineconf\Tests\Support\CdbWriter;
 use Onlineconf\Tests\Support\RawSource;
 use Onlineconf\Tests\Support\TempDir;
 use Onlineconf\Tests\Support\TestLogger;

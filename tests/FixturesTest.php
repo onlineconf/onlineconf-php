@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Onlineconf\Tests;
 
+use Onlineconf\Cdb\CdbWriter;
+use Onlineconf\Cdb\ConfWriter;
+use Onlineconf\Exception\WriteException;
 use Onlineconf\Module;
 use Onlineconf\Source\CdbSource;
-use Onlineconf\Tests\Support\CdbWriter;
 use Onlineconf\Tests\Support\Fixtures;
 use Onlineconf\Tests\Support\TempDir;
 use Onlineconf\Tests\Support\TestLogger;
@@ -130,5 +132,47 @@ final class FixturesTest extends TestCase
         self::assertSame(5.0, $module->getDuration('wss_conn_timeout', 0.0));
         self::assertFalse($module->has('/db.host'), 'paths are opaque: no leading slash is added');
         self::assertSame([], $this->logger->records);
+    }
+
+    public function testConfWriterStampsCurrentTimeByDefault(): void
+    {
+        $file = TempDir::file('.conf');
+        ConfWriter::write($file, 'T', ['/a' => 's1']);
+        $conf = (string) file_get_contents($file);
+        unlink($file);
+
+        self::assertMatchesRegularExpression('/^#! Version \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/m', $conf);
+        self::assertStringContainsString("\n/a 1\n#EOF", $conf);
+    }
+
+    public function testConfWriterHandlesAnEmptyRawValue(): void
+    {
+        $file = TempDir::file('.conf');
+        ConfWriter::write($file, 'T', ['/a' => 's']);
+        $conf = (string) file_get_contents($file);
+        unlink($file);
+
+        self::assertStringContainsString("\n/a \n#EOF", $conf, 'the type byte alone must not raise an "uninitialized string offset" notice');
+    }
+
+    public function testConfWriterThrowsOnUnwritableDirectory(): void
+    {
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            self::markTestSkipped('root can write anywhere');
+        }
+
+        $dir = TempDir::create('oc-ro');
+        chmod($dir, 0500);
+        $file = $dir . '/TREE.conf';
+
+        try {
+            ConfWriter::write($file, 'T', ['/a' => 's1']);
+            self::fail('WriteException expected');
+        } catch (WriteException $e) {
+            self::assertStringStartsWith($file . ': cannot write:', $e->getMessage());
+        } finally {
+            chmod($dir, 0700);
+            TempDir::remove($dir);
+        }
     }
 }

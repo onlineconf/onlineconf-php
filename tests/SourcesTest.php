@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Onlineconf\Tests;
 
+use Onlineconf\Cdb\CdbWriter;
 use Onlineconf\Exception\OpenException;
+use Onlineconf\Exception\WriteException;
 use Onlineconf\Module;
 use Onlineconf\Source\ArraySource;
 use Onlineconf\Source\CdbSource;
-use Onlineconf\Tests\Support\CdbWriter;
 use Onlineconf\Tests\Support\TempDir;
 use Onlineconf\Tests\Support\TestLogger;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -110,6 +111,43 @@ final class SourcesTest extends TestCase
         self::assertSame(file_get_contents($theirs), file_get_contents($ours), 'pure-PHP writer produces the same bytes as cdb_make');
         unlink($ours);
         unlink($theirs);
+    }
+
+    public function testCdbWriterThrowsOnUnwritableDirectory(): void
+    {
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            self::markTestSkipped('root can write anywhere');
+        }
+
+        $dir = TempDir::create('oc-ro');
+        chmod($dir, 0500);
+        $file = $dir . '/TREE.cdb';
+
+        try {
+            CdbWriter::write($file, ['/k' => 'sv']);
+            self::fail('WriteException expected');
+        } catch (WriteException $e) {
+            self::assertStringStartsWith($file . ': cannot write:', $e->getMessage());
+        } finally {
+            chmod($dir, 0700);
+            TempDir::remove($dir);
+        }
+    }
+
+    public function testCdbWriterUnlinksTempFileWhenRenameFails(): void
+    {
+        // rename() onto an existing directory fails deterministically, unlike a permission race
+        $dir = TempDir::create('oc-target-is-dir');
+
+        try {
+            CdbWriter::write($dir, ['/k' => 'sv']);
+            self::fail('WriteException expected');
+        } catch (WriteException $e) {
+            self::assertStringStartsWith($dir . ': cannot write:', $e->getMessage());
+            self::assertSame([], iterator_to_array(new \FilesystemIterator($dir)), 'the temp file left no trace after the failed rename');
+        } finally {
+            rmdir($dir);
+        }
     }
 
     public function testArraySourceFromValues(): void
