@@ -286,6 +286,40 @@ abstract class ValuesTestCase extends TestCase
         $this->module->require('/cbor');
     }
 
+    /**
+     * getter, a present path, its value, a path whose value does not parse for that getter.
+     *
+     * @return iterable<string, array{string, string, mixed, string}>
+     */
+    public static function nullableDefaults(): iterable
+    {
+        yield 'getString' => ['getString', '/str', 'hello', '/array/object'];
+        yield 'getInt' => ['getInt', '/int', 42, '/str'];
+        yield 'getFloat' => ['getFloat', '/float', 2.5, '/float/bad'];
+        yield 'getBool' => ['getBool', '/bool/one', true, '/array/list'];
+        yield 'getDuration' => ['getDuration', '/duration/seconds', 30.0, '/duration/bad'];
+        yield 'getDurationMs' => ['getDurationMs', '/duration/ms', 300, '/duration/bad'];
+        yield 'getStrings' => ['getStrings', '/strings/json', ['a', 'b'], '/strings/object'];
+        yield 'getArray' => ['getArray', '/array/list', [1, 2, 3], '/str'];
+    }
+
+    #[DataProvider('nullableDefaults')]
+    public function testTheDefaultIsOptionalAndMayBeNull(string $getter, string $present, mixed $value, string $unparsable): void
+    {
+        $get = [$this->module, $getter];
+        self::assertIsCallable($get);
+
+        self::assertNull($get('/missing'), 'no default: null');
+        self::assertNull($get('/missing', null), 'an explicit null default');
+        self::assertSame($value, $get($present, null), 'a present node is read as always');
+        self::assertSame([], $this->logger->records);
+
+        self::assertNull($get($unparsable, null), 'an unparsable value gives the default');
+        self::assertCount(1, $this->logger->records);
+        self::assertSame('warning', $this->logger->records[0][0]);
+        self::assertStringStartsWith('onlineconf: ' . $this->module->name() . ':' . $unparsable . ':', $this->logger->records[0][1]);
+    }
+
     public function testFormatMismatchIsLoggedAndDefaultReturned(): void
     {
         self::assertSame('dfl', $this->module->getString('/array/object', 'dfl'));
@@ -377,8 +411,11 @@ abstract class ValuesTestCase extends TestCase
 
     public function testFailedDecodeIsNotCached(): void
     {
-        self::assertSame(1, $this->module->getInt('/str', 1));
-        self::assertSame(1, $this->module->getInt('/str', 1));
+        $first = $this->module->getInt('/str', 1);
+        $second = $this->module->getInt('/str', 1);
+
+        self::assertSame(1, $first);
+        self::assertSame(1, $second);
         self::assertSame(2, $this->logger->count('warning'), 'each failed access is logged');
         self::assertSame(1, $this->source->getRaw);
     }

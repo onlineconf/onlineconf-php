@@ -117,14 +117,14 @@ They are built from the test fixtures by `php examples/build.php`; a test keeps 
 
 | Method | Returns | Accepts |
 |---|---|---|
-| `getString($path, string $default)` | `string` | `s` as is (UTF-8, no trim) |
-| `getInt($path, int $default)` | `int` | `s` matching `^[+-]?\d+$` |
-| `getFloat($path, float $default)` | `float` | `s` numeric string without surrounding whitespace |
-| `getBool($path, bool $default)` | `bool` | `s`: `""` and `"0"` are false, anything else is true |
-| `getDuration($path, float $default)` | seconds as `float` | `s` duration with units, see below |
-| `getDurationMs($path, int $default)` | milliseconds as `int` | same, rounded to the nearest ms |
-| `getStrings($path, array $default)` | `list<string>` | `s` comma-separated (trimmed, empties dropped) or `j` array of strings |
-| `getArray($path, array $default)` | `array` | `j` object or array, `json_decode(..., true)` |
+| `getString($path, ?string $default = null)` | `string` | `s` as is (UTF-8, no trim) |
+| `getInt($path, ?int $default = null)` | `int` | `s` matching `^[+-]?\d+$` |
+| `getFloat($path, ?float $default = null)` | `float` | `s` numeric string without surrounding whitespace |
+| `getBool($path, ?bool $default = null)` | `bool` | `s`: `""` and `"0"` are false, anything else is true |
+| `getDuration($path, ?float $default = null)` | seconds as `float` | `s` duration with units, see below |
+| `getDurationMs($path, ?int $default = null)` | milliseconds as `int` | same, rounded to the nearest ms |
+| `getStrings($path, ?array $default = null)` | `list<string>` | `s` comma-separated (trimmed, empties dropped) or `j` array of strings |
+| `getArray($path, ?array $default = null)` | `array` | `j` object or array, `json_decode(..., true)` |
 | `get($path, mixed $default)` | `mixed` | `s` → string, `j` → decoded JSON; no validation |
 | `has($path)` | `bool` | key exists (any type) |
 | `requireX($path)` / `require($path)` | same as `getX` | throws instead of returning a default |
@@ -135,6 +135,9 @@ They are built from the test fixtures by `php examples/build.php`; a test keeps 
 | `checkForUpdates()` | `bool` | stat now, reload if changed |
 | `version()` | `string` | `inode:mtime:size` of the loaded file |
 
+With a `null` default (or none) every `getX` returns the nullable form of its type — `?string`, `?int`,
+`?list<string>` and so on — and gives `null` for a missing or unparsable node.
+
 Values in OnlineConf are stored with a type byte: `s` (text; numbers and booleans are text too) or `j`
 (JSON; YAML is converted to JSON by the updater). Rules, shared with the other OnlineConf clients:
 
@@ -143,6 +146,11 @@ Values in OnlineConf are stored with a type byte: `s` (text; numbers and boolean
   that does not parse (`"3O"` for `getInt`, `"1d"` for `getDuration`) all return the default and log a
   `warning`. This is why the typed getters exist: `(int) "abc"` silently gives `0`, `getInt` gives your
   default and a log line.
+- **The default is optional and may be `null`.** `getString('/key')` or `getString('/key', env('KEY'))`
+  with an unset variable returns `null` when the key is missing or does not parse (with the same warning),
+  and the typed value otherwise. The return type follows the default: a non-null default gives a non-null
+  type (`string`), a null or omitted one a nullable type (`?string`) — PHPStan and Psalm see this through
+  conditional return types, so `getInt('/port', 80)` is still an `int`.
 - **`require*` getters throw**: `NotFoundException`, `FormatException` (wrong type byte or JSON of the
   wrong shape), `ParseException` (int/float/duration does not parse). Use them in bootstrap code where a
   missing key must fail the start.
