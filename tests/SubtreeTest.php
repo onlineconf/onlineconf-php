@@ -98,6 +98,21 @@ final class SubtreeTest extends TestCase
         $svc->requireInt('/missing');
     }
 
+    public function testTheDefaultIsOptionalAndMayBeNull(): void
+    {
+        $svc = $this->module->subtree('/my/service');
+
+        self::assertNull($svc->getString('/missing'));
+        self::assertNull($svc->getInt('/missing', null));
+        self::assertNull($svc->getFloat('/missing'));
+        self::assertNull($svc->getBool('/missing'));
+        self::assertNull($svc->getDuration('/missing'));
+        self::assertNull($svc->getDurationMs('/missing'));
+        self::assertNull($svc->getStrings('/missing'));
+        self::assertNull($svc->getArray('/missing'));
+        self::assertSame(30, $svc->getInt('/timeout'), 'a present node is read as always');
+    }
+
     public function testNestedSubtrees(): void
     {
         $svc = $this->module->subtree('/my/service');

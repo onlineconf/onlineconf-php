@@ -42,54 +42,72 @@ final class Subtree
         return $this->module->has($this->path($path));
     }
 
-    public function getString(string $path, string $default): string
+    /**
+     * @return ($default is null ? string|null : string)
+     */
+    public function getString(string $path, ?string $default = null): ?string
     {
         return $this->module->getString($this->path($path), $default);
     }
 
-    public function getInt(string $path, int $default): int
+    /**
+     * @return ($default is null ? int|null : int)
+     */
+    public function getInt(string $path, ?int $default = null): ?int
     {
         return $this->module->getInt($this->path($path), $default);
     }
 
-    public function getFloat(string $path, float $default): float
+    /**
+     * @return ($default is null ? float|null : float)
+     */
+    public function getFloat(string $path, ?float $default = null): ?float
     {
         return $this->module->getFloat($this->path($path), $default);
     }
 
-    public function getBool(string $path, bool $default): bool
+    /**
+     * @return ($default is null ? bool|null : bool)
+     */
+    public function getBool(string $path, ?bool $default = null): ?bool
     {
         return $this->module->getBool($this->path($path), $default);
     }
 
-    public function getDuration(string $path, float $default): float
+    /**
+     * @return ($default is null ? float|null : float)
+     */
+    public function getDuration(string $path, ?float $default = null): ?float
     {
         return $this->module->getDuration($this->path($path), $default);
     }
 
-    public function getDurationMs(string $path, int $default): int
+    /**
+     * @return ($default is null ? int|null : int)
+     */
+    public function getDurationMs(string $path, ?int $default = null): ?int
     {
         return $this->module->getDurationMs($this->path($path), $default);
     }
 
     /**
-     * @param list<string> $default
+     * @param list<string>|null $default
      *
-     * @return list<string>
+     * @return ($default is null ? list<string>|null : list<string>)
      */
-    public function getStrings(string $path, array $default): array
+    public function getStrings(string $path, ?array $default = null): ?array
     {
         return $this->module->getStrings($this->path($path), $default);
     }
 
     /**
-     * @param array<mixed> $default
+     * @param array<mixed>|null $default
      *
-     * @return array<mixed>
+     * @return ($default is null ? array<mixed>|null : array<mixed>)
      *
      * @throws InvalidJsonException
      */
-    public function getArray(string $path, array $default): array
+    public function getArray(string $path, ?array $default = null): ?array
     {
         return $this->module->getArray($this->path($path), $default);
     }

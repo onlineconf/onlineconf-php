@@ -96,73 +96,89 @@ final class Module
         return $this->raw($path) !== null;
     }
 
-    public function getString(string $path, string $default): string
+    /**
+     * @return ($default is null ? string|null : string)
+     */
+    public function getString(string $path, ?string $default = null): ?string
     {
-        /** @var string */
+        /** @var string|null */
         return $this->lookup($path, Type::String, $default, false);
     }
 
-    public function getInt(string $path, int $default): int
+    /**
+     * @return ($default is null ? int|null : int)
+     */
+    public function getInt(string $path, ?int $default = null): ?int
     {
-        /** @var int */
+        /** @var int|null */
         return $this->lookup($path, Type::Int, $default, false);
     }
 
-    public function getFloat(string $path, float $default): float
+    /**
+     * @return ($default is null ? float|null : float)
+     */
+    public function getFloat(string $path, ?float $default = null): ?float
     {
-        /** @var float */
+        /** @var float|null */
         return $this->lookup($path, Type::Float, $default, false);
     }
 
-    public function getBool(string $path, bool $default): bool
+    /**
+     * @return ($default is null ? bool|null : bool)
+     */
+    public function getBool(string $path, ?bool $default = null): ?bool
     {
-        /** @var bool */
+        /** @var bool|null */
         return $this->lookup($path, Type::Bool, $default, false);
     }
 
     /**
      * Duration in seconds (see {@see Duration::parse()}).
+     *
+     * @return ($default is null ? float|null : float)
      */
-    public function getDuration(string $path, float $default): float
+    public function getDuration(string $path, ?float $default = null): ?float
     {
-        /** @var float */
+        /** @var float|null */
         return $this->lookup($path, Type::Duration, $default, false);
     }
 
     /**
      * Duration in milliseconds, rounded to the nearest integer.
+     *
+     * @return ($default is null ? int|null : int)
      */
-    public function getDurationMs(string $path, int $default): int
+    public function getDurationMs(string $path, ?int $default = null): ?int
     {
-        /** @var int */
+        /** @var int|null */
         return $this->lookup($path, Type::DurationMs, $default, false);
     }
 
     /**
      * A comma-separated `s` value ("a, b,c") or a `j` array of strings.
      *
-     * @param list<string> $default
+     * @param list<string>|null $default
      *
-     * @return list<string>
+     * @return ($default is null ? list<string>|null : list<string>)
      */
-    public function getStrings(string $path, array $default): array
+    public function getStrings(string $path, ?array $default = null): ?array
     {
-        /** @var list<string> */
+        /** @var list<string>|null */
         return $this->lookup($path, Type::Strings, $default, false);
     }
 
     /**
      * A `j` value decoded with json_decode(..., true).
      *
-     * @param array<mixed> $default
+     * @param array<mixed>|null $default
      *
-     * @return array<mixed>
+     * @return ($default is null ? array<mixed>|null : array<mixed>)
      *
      * @throws InvalidJsonException
      */
-    public function getArray(string $path, array $default): array
+    public function getArray(string $path, ?array $default = null): ?array
     {
-        /** @var array<mixed> */
+        /** @var array<mixed>|null */
         return $this->lookup($path, Type::Array, $default, false);
     }
 
