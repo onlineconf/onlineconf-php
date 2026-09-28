@@ -411,8 +411,11 @@ abstract class ValuesTestCase extends TestCase
 
     public function testFailedDecodeIsNotCached(): void
     {
-        self::assertSame(1, $this->module->getInt('/str', 1));
-        self::assertSame(1, $this->module->getInt('/str', 1));
+        $first = $this->module->getInt('/str', 1);
+        $second = $this->module->getInt('/str', 1);
+
+        self::assertSame(1, $first);
+        self::assertSame(1, $second);
         self::assertSame(2, $this->logger->count('warning'), 'each failed access is logged');
         self::assertSame(1, $this->source->getRaw);
     }
