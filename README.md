@@ -117,7 +117,7 @@ They are built from the test fixtures by `php examples/build.php`; a test keeps 
 
 | Method | Returns | Accepts |
 |---|---|---|
-| `getString($path, ?string $default = null)` | `string` (`?string` with a null default) | `s` as is (UTF-8, no trim) |
+| `getString($path, ?string $default = null)` | `string` | `s` as is (UTF-8, no trim) |
 | `getInt($path, ?int $default = null)` | `int` | `s` matching `^[+-]?\d+$` |
 | `getFloat($path, ?float $default = null)` | `float` | `s` numeric string without surrounding whitespace |
 | `getBool($path, ?bool $default = null)` | `bool` | `s`: `""` and `"0"` are false, anything else is true |
@@ -134,6 +134,9 @@ They are built from the test fixtures by `php examples/build.php`; a test keeps 
 | `walk($path, callable $visitor, ?int $maxDepth)` | — | depth-first traversal with raw values |
 | `checkForUpdates()` | `bool` | stat now, reload if changed |
 | `version()` | `string` | `inode:mtime:size` of the loaded file |
+
+With a `null` default (or none) every `getX` returns the nullable form of its type — `?string`, `?int`,
+`?list<string>` and so on — and gives `null` for a missing or unparsable node.
 
 Values in OnlineConf are stored with a type byte: `s` (text; numbers and booleans are text too) or `j`
 (JSON; YAML is converted to JSON by the updater). Rules, shared with the other OnlineConf clients:

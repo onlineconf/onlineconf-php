@@ -16,10 +16,10 @@
   return types: a non-null default still gives a non-null type, so existing callers keep their types.
   `require*()` and the untyped `get()` are unchanged.
 
-## 1.1.0
+## 1.1.0 — 2026-09-21
 
 - `Onlineconf\Cdb` toolbox: `CdbWriter`, `CdbReader`, `ConfWriter`; `ArraySource::withChildLists()` is public.
 
-## 1.0.0
+## 1.0.0 — 2026-09-10
 
 - Initial release.
