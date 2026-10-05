@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Onlineconf\Tests;
 
 use Onlineconf\Exception\FormatException;
+use Onlineconf\Exception\InvalidDefaultException;
 use Onlineconf\Exception\InvalidJsonException;
 use Onlineconf\Exception\NotFoundException;
 use Onlineconf\Exception\ParseException;
@@ -318,6 +319,33 @@ abstract class ValuesTestCase extends TestCase
         self::assertCount(1, $this->logger->records);
         self::assertSame('warning', $this->logger->records[0][0]);
         self::assertStringStartsWith('onlineconf: ' . $this->module->name() . ':' . $unparsable . ':', $this->logger->records[0][1]);
+    }
+
+    public function testAStringDefaultIsReadLikeATextValue(): void
+    {
+        self::assertSame(42, $this->module->getInt('/missing', '42'));
+        self::assertSame(2.5, $this->module->getFloat('/missing', '2.5'));
+        self::assertFalse($this->module->getBool('/missing', '0'));
+        self::assertTrue($this->module->getBool('/missing', '1'));
+        self::assertSame(60.0, $this->module->getDuration('/missing', '1m'));
+        self::assertSame(1000, $this->module->getDurationMs('/missing', '1s'));
+        self::assertSame(['a', 'b'], $this->module->getStrings('/missing', 'a, b'));
+        self::assertSame(['a', 'b'], $this->module->getStrings('/missing', array_filter(explode(',', 'a,,b'), static fn (string $s): bool => $s !== '')), 'as 1.2 took it');
+        self::assertSame(['k' => 1], $this->module->getArray('/missing', '{"k":1}'));
+        self::assertNull($this->module->getInt('/missing', ''), 'an empty variable is not set');
+        self::assertNull($this->module->getBool('/missing', ''));
+
+        self::assertSame(42, $this->module->getInt('/int', '1'), 'a present node wins');
+        self::assertSame(7, $this->module->getInt('/str', '7'), 'an unparsable node gives the parsed default');
+        self::assertCount(1, $this->logger->records);
+    }
+
+    public function testABadDefaultFailsEvenWhenTheNodeIsThere(): void
+    {
+        $this->expectException(InvalidDefaultException::class);
+        $this->expectExceptionMessage('/int: invalid default for int: "abc" is not an integer');
+
+        $this->module->getInt('/int', 'abc');
     }
 
     public function testFormatMismatchIsLoggedAndDefaultReturned(): void

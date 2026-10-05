@@ -14,44 +14,58 @@ use Onlineconf\Subtree;
 
 use function PHPStan\Testing\assertType;
 
-function moduleGetters(Module $module, ?string $maybe): void
+/**
+ * @param string|null $env what env() gives: a string, or null when unset
+ */
+function moduleGetters(Module $module, ?string $maybe, ?string $env): void
 {
     assertType('string', $module->getString('/p', 'd'));
     assertType('string|null', $module->getString('/p'));
     assertType('string|null', $module->getString('/p', null));
     assertType('string|null', $module->getString('/p', $maybe));
+
     assertType('int', $module->getInt('/p', 1));
+    assertType('int', $module->getInt('/p', '80')); // a non-empty string parses or throws
     assertType('int|null', $module->getInt('/p'));
+    assertType('int|null', $module->getInt('/p', ''));
+    assertType('int|null', $module->getInt('/p', $env));
     assertType('float', $module->getFloat('/p', 1.0));
-    assertType('float|null', $module->getFloat('/p'));
+    assertType('float', $module->getFloat('/p', 1));
+    assertType('float', $module->getFloat('/p', '2.5'));
+    assertType('float|null', $module->getFloat('/p', $env));
     assertType('bool', $module->getBool('/p', false));
-    assertType('bool|null', $module->getBool('/p'));
+    assertType('bool', $module->getBool('/p', '1'));
+    assertType('bool|null', $module->getBool('/p', $env));
     assertType('float', $module->getDuration('/p', 1.0));
+    assertType('float', $module->getDuration('/p', '1m'));
     assertType('float|null', $module->getDuration('/p'));
     assertType('int', $module->getDurationMs('/p', 1));
-    assertType('int|null', $module->getDurationMs('/p'));
+    assertType('int', $module->getDurationMs('/p', '1s'));
+    assertType('int|null', $module->getDurationMs('/p', $env));
     assertType('list<string>', $module->getStrings('/p', []));
-    assertType('list<string>|null', $module->getStrings('/p'));
+    assertType('list<string>', $module->getStrings('/p', 'a,b'));
+    assertType('list<string>|null', $module->getStrings('/p', $env));
     assertType('array<mixed>', $module->getArray('/p', []));
-    assertType('array<mixed>|null', $module->getArray('/p'));
+    assertType('array<mixed>', $module->getArray('/p', '{"a":1}'));
+    assertType('array<mixed>|null', $module->getArray('/p', $env));
 }
 
-function subtreeGetters(Subtree $subtree): void
+function subtreeGetters(Subtree $subtree, ?string $env): void
 {
     assertType('string', $subtree->getString('/p', 'd'));
     assertType('string|null', $subtree->getString('/p'));
-    assertType('int', $subtree->getInt('/p', 1));
-    assertType('int|null', $subtree->getInt('/p'));
+    assertType('int', $subtree->getInt('/p', '80'));
+    assertType('int|null', $subtree->getInt('/p', $env));
     assertType('float', $subtree->getFloat('/p', 1.0));
     assertType('float|null', $subtree->getFloat('/p'));
     assertType('bool', $subtree->getBool('/p', false));
-    assertType('bool|null', $subtree->getBool('/p'));
-    assertType('float', $subtree->getDuration('/p', 1.0));
+    assertType('bool|null', $subtree->getBool('/p', $env));
+    assertType('float', $subtree->getDuration('/p', '1m'));
     assertType('float|null', $subtree->getDuration('/p'));
     assertType('int', $subtree->getDurationMs('/p', 1));
     assertType('int|null', $subtree->getDurationMs('/p'));
-    assertType('list<string>', $subtree->getStrings('/p', []));
+    assertType('list<string>', $subtree->getStrings('/p', 'a'));
     assertType('list<string>|null', $subtree->getStrings('/p'));
     assertType('array<mixed>', $subtree->getArray('/p', []));
-    assertType('array<mixed>|null', $subtree->getArray('/p'));
+    assertType('array<mixed>|null', $subtree->getArray('/p', $env));
 }

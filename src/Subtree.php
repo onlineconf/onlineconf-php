@@ -51,63 +51,76 @@ final class Subtree
     }
 
     /**
-     * @return ($default is null ? int|null : int)
+     * @return ($default is int|non-empty-string ? int : int|null)
+     *
+     * @throws \Onlineconf\Exception\InvalidDefaultException
      */
-    public function getInt(string $path, ?int $default = null): ?int
+    public function getInt(string $path, int|string|null $default = null): ?int
     {
         return $this->module->getInt($this->path($path), $default);
     }
 
     /**
-     * @return ($default is null ? float|null : float)
+     * @return ($default is int|float|non-empty-string ? float : float|null)
+     *
+     * @throws \Onlineconf\Exception\InvalidDefaultException
      */
-    public function getFloat(string $path, ?float $default = null): ?float
+    public function getFloat(string $path, float|string|null $default = null): ?float
     {
         return $this->module->getFloat($this->path($path), $default);
     }
 
     /**
-     * @return ($default is null ? bool|null : bool)
+     * @return ($default is bool|non-empty-string ? bool : bool|null)
+     *
+     * @throws \Onlineconf\Exception\InvalidDefaultException
      */
-    public function getBool(string $path, ?bool $default = null): ?bool
+    public function getBool(string $path, bool|string|null $default = null): ?bool
     {
         return $this->module->getBool($this->path($path), $default);
     }
 
     /**
-     * @return ($default is null ? float|null : float)
+     * @return ($default is int|float|non-empty-string ? float : float|null)
+     *
+     * @throws \Onlineconf\Exception\InvalidDefaultException
      */
-    public function getDuration(string $path, ?float $default = null): ?float
+    public function getDuration(string $path, float|string|null $default = null): ?float
     {
         return $this->module->getDuration($this->path($path), $default);
     }
 
     /**
-     * @return ($default is null ? int|null : int)
+     * @return ($default is int|non-empty-string ? int : int|null)
+     *
+     * @throws \Onlineconf\Exception\InvalidDefaultException
      */
-    public function getDurationMs(string $path, ?int $default = null): ?int
+    public function getDurationMs(string $path, int|string|null $default = null): ?int
     {
         return $this->module->getDurationMs($this->path($path), $default);
     }
 
     /**
-     * @param list<string>|null $default
+     * @param array<string>|string|null $default
      *
-     * @return ($default is null ? list<string>|null : list<string>)
+     * @return ($default is array|non-empty-string ? list<string> : list<string>|null)
+     *
+     * @throws \Onlineconf\Exception\InvalidDefaultException
      */
-    public function getStrings(string $path, ?array $default = null): ?array
+    public function getStrings(string $path, array|string|null $default = null): ?array
     {
         return $this->module->getStrings($this->path($path), $default);
     }
 
     /**
-     * @param array<mixed>|null $default
+     * @param array<mixed>|string|null $default
      *
-     * @return ($default is null ? array<mixed>|null : array<mixed>)
+     * @return ($default is array|non-empty-string ? array<mixed> : array<mixed>|null)
      *
      * @throws InvalidJsonException
+     * @throws \Onlineconf\Exception\InvalidDefaultException
      */
-    public function getArray(string $path, ?array $default = null): ?array
+    public function getArray(string $path, array|string|null $default = null): ?array
     {
         return $this->module->getArray($this->path($path), $default);
     }

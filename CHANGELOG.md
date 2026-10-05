@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.3.0 — 2026-10-05
+
+### Added
+
+- String defaults: `getInt()`, `getFloat()`, `getBool()`, `getDuration()`, `getDurationMs()`, `getStrings()` and
+  `getArray()` accept a string default, read with the rules of an `s` value of their type, so an environment
+  variable can be passed as it is. `getStrings()` still takes any array of strings, renumbered. `null` and `""`
+  give `null`; `getBool()` takes only `"0"` and `"1"`; `getStrings()` reads a comma-separated list or a JSON
+  array; `getArray()` reads JSON. A default that does not
+  read — checked before the node — is the new `Onlineconf\Exception\InvalidDefaultException`
+  (`InvalidArgumentException`) naming the path and the type. On `Module` and `Subtree`.
+- `Type::parseDefault($default, $path)`, public, for integrations that serve defaults themselves; `Type` is no
+  longer internal. Its supported surface is the cases and `parseDefault()`; cases may be added in a minor
+  release, so a `match` over them needs a `default` arm.
+- `Module::fromFile($file, $required = true, $logger, $checkInterval)`: a required module file must exist (an
+  `OpenException` that says how to switch), an optional missing one is an empty module that opens the file once
+  it appears, without a restart.
+- `ONLINECONF_REQUIRED` and `Settings::$required`: only `false` (any case), Laravel's `(false)` or `0` make the
+  module optional; unset, empty and any other value keep it required.
+
+### Changed
+
+- The conditional return types of those getters follow the string defaults: a non-empty string default gives a
+  non-null type, as a typed one does; `""` or a `?string` gives the nullable type.
+- Required-by-default applies to the new `Module::fromFile()`; `new Module(new CdbSource(...))` and the
+  `Onlineconf::module()` registry open files exactly as before.
+
 ## 1.2.0 — 2026-09-28
 
 ### Added

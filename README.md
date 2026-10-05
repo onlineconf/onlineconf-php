@@ -88,6 +88,23 @@ Highest priority first:
 
 Empty environment variables count as unset.
 
+### A missing module file: required or optional
+
+`Module::fromFile($file, $required, $logger, $checkInterval)` opens one module file and decides what a missing
+file means; `Settings::$required` carries the choice from the environment:
+
+| `ONLINECONF_REQUIRED` | Mode | A missing module file |
+|---|---|---|
+| unset, empty, or anything else | required (the default) | `OpenException`: `<file>: no such file; set ONLINECONF_REQUIRED=false to start without it` |
+| `false` (any case), `(false)` or `0` | optional | an empty module: `get*` give their defaults, `require*` throw `NotFoundException` that names the missing file, `version()` is `"missing"` |
+
+An optional module looks for its file again on every update check (`check_interval`, as for any module) and
+serves it once it is there, so a worker started before `onlineconf-updater` delivered the tree picks it up
+without a restart. A file that is there but cannot be opened is an error in both modes — a broken delivery,
+not a missing one. Only a typo-proof `false`/`0` switches the check off: development machines and CI, which
+have no OnlineConf at all, set it; production does not. The static registry `Onlineconf::module()` keeps
+opening files as before.
+
 A module name without `/` is a file in the directory; a name with `/` is a path. `.cdb` is appended
 when the name has no extension (`TREE` → `TREE.cdb`, `custom.db` stays as is and is still read as CDB).
 The text `.conf` files next to the `.cdb` files are ignored.
@@ -118,13 +135,13 @@ They are built from the test fixtures by `php examples/build.php`; a test keeps 
 | Method | Returns | Accepts |
 |---|---|---|
 | `getString($path, ?string $default = null)` | `string` | `s` as is (UTF-8, no trim) |
-| `getInt($path, ?int $default = null)` | `int` | `s` matching `^[+-]?\d+$` |
-| `getFloat($path, ?float $default = null)` | `float` | `s` numeric string without surrounding whitespace |
-| `getBool($path, ?bool $default = null)` | `bool` | `s`: `""` and `"0"` are false, anything else is true |
-| `getDuration($path, ?float $default = null)` | seconds as `float` | `s` duration with units, see below |
-| `getDurationMs($path, ?int $default = null)` | milliseconds as `int` | same, rounded to the nearest ms |
-| `getStrings($path, ?array $default = null)` | `list<string>` | `s` comma-separated (trimmed, empties dropped) or `j` array of strings |
-| `getArray($path, ?array $default = null)` | `array` | `j` object or array, `json_decode(..., true)` |
+| `getInt($path, int\|string\|null $default = null)` | `int` | `s` matching `^[+-]?\d+$` |
+| `getFloat($path, float\|string\|null $default = null)` | `float` | `s` numeric string without surrounding whitespace |
+| `getBool($path, bool\|string\|null $default = null)` | `bool` | `s`: `""` and `"0"` are false, anything else is true |
+| `getDuration($path, float\|string\|null $default = null)` | seconds as `float` | `s` duration with units, see below |
+| `getDurationMs($path, int\|string\|null $default = null)` | milliseconds as `int` | same, rounded to the nearest ms |
+| `getStrings($path, array\|string\|null $default = null)` | `list<string>` | `s` comma-separated (trimmed, empties dropped) or `j` array of strings |
+| `getArray($path, array\|string\|null $default = null)` | `array` | `j` object or array, `json_decode(..., true)` |
 | `get($path, mixed $default)` | `mixed` | `s` → string, `j` → decoded JSON; no validation |
 | `has($path)` | `bool` | key exists (any type) |
 | `requireX($path)` / `require($path)` | same as `getX` | throws instead of returning a default |
@@ -137,6 +154,38 @@ They are built from the test fixtures by `php examples/build.php`; a test keeps 
 
 With a `null` default (or none) every `getX` returns the nullable form of its type — `?string`, `?int`,
 `?list<string>` and so on — and gives `null` for a missing or unparsable node.
+
+### Defaults from the environment
+
+A default may also be a string, read with the rules of an `s` value of the getter's type, so an environment
+variable can be passed as it is — `getInt('/db/port', getenv('DB_PORT') === false ? null : getenv('DB_PORT'))`
+(not `getenv('DB_PORT') ?: null`, which turns `"0"` into `null`; an empty variable already gives `null`), or
+`env('DB_PORT')` in Laravel — without a cast that would turn an unset variable into `0`:
+
+| Getter | A string default is read as | Examples |
+|---|---|---|
+| `getInt`, `getDurationMs` | an `s` value: `^[+-]?\d+$`, a duration for `getDurationMs` | `"3306"` → `3306`, `"1.5s"` → `1500` |
+| `getFloat`, `getDuration` | an `s` value: a number, a duration | `"0.5"` → `0.5`, `"1m"` → `60.0` |
+| `getBool` | `"1"` or `"0"` only — stricter than a node, where any other text is true | `"0"` → `false` |
+| `getStrings` | comma-separated, or a JSON array of strings when it starts with `[` | `"a, b"` → `["a", "b"]` |
+| `getArray` | JSON | `'{"pool":5}'` → `["pool" => 5]` |
+
+- `null` and `""` give `null`: an empty variable is an unset one. `getString()` takes its default as it is,
+  `""` included, and so does the untyped `get()`.
+- A value already of the type is taken as it is (an int for `getFloat` and `getDuration` too).
+- Anything else — `"abc"` for `getInt`, `"yes"` for `getBool`, broken JSON — is an
+  `Onlineconf\Exception\InvalidDefaultException` (an `InvalidArgumentException`) naming the path and the
+  type; the value is in the message for the scalar types only, since a list or a JSON document may be a
+  secret. The default is read **before** the node, so a bad default fails even where the node exists — a
+  broken `.env` shows up on every machine, not only where OnlineConf has no value.
+- The return type follows the default for PHPStan and Psalm: `getInt('/p', 80)` and `getInt('/p', '80')` are
+  `int`, `getInt('/p', $env)` with a `?string` is `?int`.
+- The parser is public: `Onlineconf\Type::Int->parseDefault($value, $path)` reads a default without a module,
+  as a framework integration needs for defaults it serves itself. The supported surface of `Onlineconf\Type`
+  is its cases and `parseDefault()`; new cases may be added in a minor release, so do not `match` over all
+  of them without a `default` arm. `parseText()` and `label()` are public for the client's own use.
+- `getStrings()` takes any array of strings as a default and renumbers it, so
+  `array_filter(explode(',', ...))` works as before.
 
 Values in OnlineConf are stored with a type byte: `s` (text; numbers and booleans are text too) or `j`
 (JSON; YAML is converted to JSON by the updater). Rules, shared with the other OnlineConf clients:

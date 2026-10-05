@@ -113,6 +113,19 @@ final class SubtreeTest extends TestCase
         self::assertSame(30, $svc->getInt('/timeout'), 'a present node is read as always');
     }
 
+    public function testAStringDefaultIsReadLikeATextValue(): void
+    {
+        $svc = $this->module->subtree('/my/service');
+
+        self::assertSame(5, $svc->getInt('/missing', '5'));
+        self::assertSame(0.5, $svc->getFloat('/missing', '0.5'));
+        self::assertTrue($svc->getBool('/missing', '1'));
+        self::assertSame(2.0, $svc->getDuration('/missing', '2s'));
+        self::assertSame(2000, $svc->getDurationMs('/missing', '2s'));
+        self::assertSame(['x', 'y'], $svc->getStrings('/missing', 'x,y'));
+        self::assertSame([1], $svc->getArray('/missing', '[1]'));
+    }
+
     public function testNestedSubtrees(): void
     {
         $svc = $this->module->subtree('/my/service');
