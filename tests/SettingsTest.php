@@ -7,6 +7,7 @@ namespace Onlineconf\Tests;
 use Onlineconf\Settings;
 use Onlineconf\Tests\Support\TempDir;
 use Onlineconf\Tests\Support\TestLogger;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class SettingsTest extends TestCase
@@ -175,5 +176,34 @@ final class SettingsTest extends TestCase
         self::assertSame('/path/to/custom.cdb', $settings->fileName('/path/to/custom'));
         self::assertSame('/path/to/custom.db', $settings->fileName('/path/to/custom.db'));
         self::assertSame('relative/custom.cdb', $settings->fileName('relative/custom'));
+    }
+
+    /**
+     * @return iterable<string, array{array<string, string>, bool}>
+     */
+    public static function requiredValues(): iterable
+    {
+        yield 'unset' => [[], true];
+        yield 'empty counts as unset' => [['ONLINECONF_REQUIRED' => ''], true];
+        yield 'false' => [['ONLINECONF_REQUIRED' => 'false'], false];
+        yield 'FALSE' => [['ONLINECONF_REQUIRED' => 'FALSE'], false];
+        yield '0' => [['ONLINECONF_REQUIRED' => '0'], false];
+        yield 'true' => [['ONLINECONF_REQUIRED' => 'true'], true];
+        yield '1' => [['ONLINECONF_REQUIRED' => '1'], true];
+        yield 'a typo stays strict' => [['ONLINECONF_REQUIRED' => 'no'], true];
+    }
+
+    /**
+     * @param array<string, string> $env
+     */
+    #[DataProvider('requiredValues')]
+    public function testOnlyFalseOrZeroMakesTheModuleOptional(array $env, bool $required): void
+    {
+        self::assertSame($required, $this->resolve($env)->required);
+    }
+
+    public function testRequiredByDefault(): void
+    {
+        self::assertTrue((new Settings('/dir', 'TREE'))->required);
     }
 }

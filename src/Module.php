@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Onlineconf;
 
 use Onlineconf\Exception\FormatException;
+use Onlineconf\Exception\InvalidDefaultException;
 use Onlineconf\Exception\InvalidJsonException;
 use Onlineconf\Exception\NotFoundException;
 use Onlineconf\Exception\OpenException;
 use Onlineconf\Exception\ParseException;
+use Onlineconf\Source\CdbSource;
+use Onlineconf\Source\MissingFileSource;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
@@ -53,6 +56,32 @@ final class Module
     ) {
         $this->logger = $logger ?? new NullLogger();
         $this->lastCheck = microtime(true);
+    }
+
+    /**
+     * The module of a file. A required module (the default; see {@see Settings::$required}) must be there:
+     * an {@see OpenException} says how to start without it. An optional one that is not there is an empty
+     * module — get* give their defaults, require* say the file is missing, version() is "missing" — that
+     * looks for the file again on every update check and serves it once it has been delivered.
+     *
+     * @param int $checkInterval seconds between stat() checks for updates; 0 = check on every access
+     *
+     * @throws OpenException when a required file is not there, or the file cannot be opened as CDB
+     */
+    public static function fromFile(
+        string $file,
+        bool $required = true,
+        ?LoggerInterface $logger = null,
+        int $checkInterval = self::DEFAULT_CHECK_INTERVAL,
+    ): self {
+        if (is_file($file)) {
+            return new self(new CdbSource($file), $logger, $checkInterval);
+        }
+        if ($required) {
+            throw new OpenException($file . ': no such file; set ONLINECONF_REQUIRED=false to start without it');
+        }
+
+        return new self(new MissingFileSource($file), $logger, $checkInterval);
     }
 
     public function name(): string
@@ -106,80 +135,93 @@ final class Module
     }
 
     /**
-     * @return ($default is null ? int|null : int)
+     * @return ($default is int|non-empty-string ? int : int|null)
+     *
+     * @throws InvalidDefaultException when the default does not read as int
      */
-    public function getInt(string $path, ?int $default = null): ?int
+    public function getInt(string $path, int|string|null $default = null): ?int
     {
         /** @var int|null */
-        return $this->lookup($path, Type::Int, $default, false);
+        return $this->lookup($path, Type::Int, Type::Int->parseDefault($default, $path), false);
     }
 
     /**
-     * @return ($default is null ? float|null : float)
+     * @return ($default is int|float|non-empty-string ? float : float|null)
+     *
+     * @throws InvalidDefaultException when the default does not read as float
      */
-    public function getFloat(string $path, ?float $default = null): ?float
+    public function getFloat(string $path, float|string|null $default = null): ?float
     {
         /** @var float|null */
-        return $this->lookup($path, Type::Float, $default, false);
+        return $this->lookup($path, Type::Float, Type::Float->parseDefault($default, $path), false);
     }
 
     /**
-     * @return ($default is null ? bool|null : bool)
+     * @return ($default is bool|non-empty-string ? bool : bool|null)
+     *
+     * @throws InvalidDefaultException when the default does not read as bool
      */
-    public function getBool(string $path, ?bool $default = null): ?bool
+    public function getBool(string $path, bool|string|null $default = null): ?bool
     {
         /** @var bool|null */
-        return $this->lookup($path, Type::Bool, $default, false);
+        return $this->lookup($path, Type::Bool, Type::Bool->parseDefault($default, $path), false);
     }
 
     /**
      * Duration in seconds (see {@see Duration::parse()}).
      *
-     * @return ($default is null ? float|null : float)
+     * @return ($default is int|float|non-empty-string ? float : float|null)
+     *
+     * @throws InvalidDefaultException when the default does not read as float
      */
-    public function getDuration(string $path, ?float $default = null): ?float
+    public function getDuration(string $path, float|string|null $default = null): ?float
     {
         /** @var float|null */
-        return $this->lookup($path, Type::Duration, $default, false);
+        return $this->lookup($path, Type::Duration, Type::Duration->parseDefault($default, $path), false);
     }
 
     /**
      * Duration in milliseconds, rounded to the nearest integer.
      *
-     * @return ($default is null ? int|null : int)
+     * @return ($default is int|non-empty-string ? int : int|null)
+     *
+     * @throws InvalidDefaultException when the default does not read as int
      */
-    public function getDurationMs(string $path, ?int $default = null): ?int
+    public function getDurationMs(string $path, int|string|null $default = null): ?int
     {
         /** @var int|null */
-        return $this->lookup($path, Type::DurationMs, $default, false);
+        return $this->lookup($path, Type::DurationMs, Type::DurationMs->parseDefault($default, $path), false);
     }
 
     /**
      * A comma-separated `s` value ("a, b,c") or a `j` array of strings.
      *
-     * @param list<string>|null $default
+     * @param list<string>|string|null $default
      *
-     * @return ($default is null ? list<string>|null : list<string>)
+     * @return ($default is array|non-empty-string ? list<string> : list<string>|null)
+     *
+     * @throws InvalidDefaultException when the default does not read as list<string>
      */
-    public function getStrings(string $path, ?array $default = null): ?array
+    public function getStrings(string $path, array|string|null $default = null): ?array
     {
         /** @var list<string>|null */
-        return $this->lookup($path, Type::Strings, $default, false);
+        return $this->lookup($path, Type::Strings, Type::Strings->parseDefault($default, $path), false);
     }
 
     /**
      * A `j` value decoded with json_decode(..., true).
      *
-     * @param array<mixed>|null $default
+     * @param array<mixed>|string|null $default
      *
-     * @return ($default is null ? array<mixed>|null : array<mixed>)
+     * @return ($default is array|non-empty-string ? array<mixed> : array<mixed>|null)
      *
      * @throws InvalidJsonException
+     * @throws InvalidDefaultException when the default does not read as array<mixed>
      */
-    public function getArray(string $path, ?array $default = null): ?array
+    public function getArray(string $path, array|string|null $default = null): ?array
     {
         /** @var array<mixed>|null */
-        return $this->lookup($path, Type::Array, $default, false);
+        return $this->lookup($path, Type::Array, Type::Array->parseDefault($default, $path), false);
     }
 
     /**
@@ -396,7 +438,9 @@ final class Module
         $raw = $this->raw($path);
         if ($raw === null) {
             if ($strict) {
-                throw new NotFoundException($this->message($path, 'key not found'));
+                throw new NotFoundException($this->message($path, $this->source instanceof MissingFileSource && $this->source->isMissing()
+                    ? sprintf('key not found: module file %s is missing', $this->source->file())
+                    : 'key not found'));
             }
 
             return $default;
@@ -450,15 +494,11 @@ final class Module
             throw new FormatException($this->message($path, 'format is not a string'));
         }
 
-        return match ($type) {
-            Type::String => $data,
-            Type::Int => $this->parseInt($path, $data),
-            Type::Float => $this->parseFloat($path, $data),
-            Type::Bool => $data !== '' && $data !== '0',
-            Type::Duration => $this->parseDuration($path, $data),
-            Type::DurationMs => (int) round($this->parseDuration($path, $data) * 1000),
-            Type::Strings => array_values(array_filter(array_map('trim', explode(',', $data)), static fn (string $s): bool => $s !== '')),
-        };
+        try {
+            return $type->parseText($data);
+        } catch (ParseException $e) {
+            throw new ParseException($this->message($path, $e->getMessage()), 0, $e);
+        }
     }
 
     /**
@@ -493,46 +533,8 @@ final class Module
         return $value;
     }
 
-    /**
-     * @throws ParseException
-     */
-    private function parseInt(string $path, string $data): int
-    {
-        if (preg_match('/^[+-]?0*(\d+)$/D', $data, $match) !== 1) {
-            throw new ParseException($this->message($path, sprintf('"%s" is not an integer', $data)));
-        }
 
-        $value = (int) $data;
-        if (ltrim((string) $value, '-') !== $match[1]) {
-            throw new ParseException($this->message($path, sprintf('"%s" is out of integer range', $data)));
-        }
 
-        return $value;
-    }
-
-    /**
-     * @throws ParseException
-     */
-    private function parseFloat(string $path, string $data): float
-    {
-        if (!is_numeric($data) || trim($data) !== $data) {
-            throw new ParseException($this->message($path, sprintf('"%s" is not a number', $data)));
-        }
-
-        return (float) $data;
-    }
-
-    /**
-     * @throws ParseException
-     */
-    private function parseDuration(string $path, string $data): float
-    {
-        try {
-            return Duration::parse($data);
-        } catch (ParseException $e) {
-            throw new ParseException($this->message($path, $e->getMessage()), 0, $e);
-        }
-    }
 
     /**
      * @return list<string>

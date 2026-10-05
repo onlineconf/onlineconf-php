@@ -25,8 +25,15 @@ final class Settings
     public const DEFAULT_MODULE = 'TREE';
     public const DEFAULT_CONFIG_FILE = '/usr/local/etc/onlineconf.yaml';
 
-    public function __construct(public readonly string $dir, public readonly string $module)
-    {
+    /**
+     * @param bool $required the module file must exist ({@see Module::fromFile()}): ONLINECONF_REQUIRED unless it
+     *                       is "false" or "0"
+     */
+    public function __construct(
+        public readonly string $dir,
+        public readonly string $module,
+        public readonly bool $required = true,
+    ) {
     }
 
     /**
@@ -49,7 +56,17 @@ final class Settings
 
         $dir ??= self::dirFromClientConfig(self::DEFAULT_CONFIG_FILE, $logger) ?? self::DEFAULT_DIR;
 
-        return new self(rtrim($dir, '/'), $module ?? self::DEFAULT_MODULE);
+        return new self(rtrim($dir, '/'), $module ?? self::DEFAULT_MODULE, self::required($env['ONLINECONF_REQUIRED'] ?? ''));
+    }
+
+    /**
+     * ONLINECONF_REQUIRED: only "false" (any case) and "0" make the module file optional. Unset or empty — an
+     * empty variable counts as unset, as everywhere in this client — and anything else keep it required, so a
+     * typo cannot switch the check off.
+     */
+    private static function required(string $value): bool
+    {
+        return !in_array(strtolower($value), ['false', '0'], true);
     }
 
     /**
