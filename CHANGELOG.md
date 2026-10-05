@@ -6,8 +6,9 @@
 
 - String defaults: `getInt()`, `getFloat()`, `getBool()`, `getDuration()`, `getDurationMs()`, `getStrings()` and
   `getArray()` accept a string default, read with the rules of an `s` value of their type, so an environment
-  variable can be passed as it is. `getStrings()` still takes any array of strings, renumbered. `null` and `""` give `null`; `getBool()` takes only `"0"` and `"1"`;
-  `getStrings()` reads a comma-separated list or a JSON array; `getArray()` reads JSON. A default that does not
+  variable can be passed as it is. `getStrings()` still takes any array of strings, renumbered. `null` and `""`
+  give `null`; `getBool()` takes only `"0"` and `"1"`; `getStrings()` reads a comma-separated list or a JSON
+  array; `getArray()` reads JSON. A default that does not
   read — checked before the node — is the new `Onlineconf\Exception\InvalidDefaultException`
   (`InvalidArgumentException`) naming the path and the type. On `Module` and `Subtree`.
 - `Type::parseDefault($default, $path)`, public, for integrations that serve defaults themselves; `Type` is no
