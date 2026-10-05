@@ -191,6 +191,9 @@ final class SettingsTest extends TestCase
         yield 'true' => [['ONLINECONF_REQUIRED' => 'true'], true];
         yield '1' => [['ONLINECONF_REQUIRED' => '1'], true];
         yield 'a typo stays strict' => [['ONLINECONF_REQUIRED' => 'no'], true];
+        yield "Laravel's (false)" => [['ONLINECONF_REQUIRED' => '(false)'], false];
+        yield "Laravel's (FALSE)" => [['ONLINECONF_REQUIRED' => '(FALSE)'], false];
+        yield "Laravel's (true)" => [['ONLINECONF_REQUIRED' => '(true)'], true];
     }
 
     /**

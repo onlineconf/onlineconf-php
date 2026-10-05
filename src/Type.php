@@ -28,7 +28,8 @@ enum Type
      *
      * - `null`, and `''` (an empty variable is an unset one), give `null`; for String and Mixed the default is
      *   always taken as it is, `''` included;
-     * - a value already of the type is taken as it is (an int for Float and Duration too);
+     * - a value already of the type is taken as it is (an int for Float and Duration too); for Strings any array
+     *   of strings, renumbered — what array_filter(explode(...)) leaves;
      * - a string is parsed as an `s` value: Int, Float, Duration, DurationMs as the node would be; Bool only from
      *   "0" or "1", stricter than a node; Strings as a comma-separated list, or as a JSON array of strings when it
      *   starts with "["; Array as JSON;
@@ -53,7 +54,7 @@ enum Type
             $this === self::Int, $this === self::DurationMs => is_int($default) ? $default : $this->wrongType($default, $path, 'int'),
             $this === self::Float, $this === self::Duration => is_int($default) || is_float($default) ? (float) $default : $this->wrongType($default, $path, 'float'),
             $this === self::Bool => is_bool($default) ? $default : $this->wrongType($default, $path, 'bool'),
-            $this === self::Strings => is_array($default) && self::isStringList($default) ? $default : $this->invalid($path, 'expected a list of strings'),
+            $this === self::Strings => is_array($default) && self::onlyStrings($default) ? array_values($default) : $this->invalid($path, 'expected an array of strings'),
             default => is_array($default) ? $default : $this->wrongType($default, $path, 'array'),
         };
     }
@@ -136,6 +137,16 @@ enum Type
     private function invalid(string $path, string $reason, ?\Throwable $previous = null): never
     {
         throw new InvalidDefaultException(sprintf('%s: invalid default for %s: %s', $path, $this->label(), $reason), 0, $previous);
+    }
+
+    /**
+     * @param array<mixed> $value
+     *
+     * @phpstan-assert-if-true array<string> $value
+     */
+    private static function onlyStrings(array $value): bool
+    {
+        return $value === array_filter($value, 'is_string');
     }
 
     /**

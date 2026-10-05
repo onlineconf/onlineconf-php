@@ -96,7 +96,7 @@ file means; `Settings::$required` carries the choice from the environment:
 | `ONLINECONF_REQUIRED` | Mode | A missing module file |
 |---|---|---|
 | unset, empty, or anything else | required (the default) | `OpenException`: `<file>: no such file; set ONLINECONF_REQUIRED=false to start without it` |
-| `false` (any case) or `0` | optional | an empty module: `get*` give their defaults, `require*` throw `NotFoundException` that names the missing file, `version()` is `"missing"` |
+| `false` (any case), `(false)` or `0` | optional | an empty module: `get*` give their defaults, `require*` throw `NotFoundException` that names the missing file, `version()` is `"missing"` |
 
 An optional module looks for its file again on every update check (`check_interval`, as for any module) and
 serves it once it is there, so a worker started before `onlineconf-updater` delivered the tree picks it up
@@ -158,8 +158,9 @@ With a `null` default (or none) every `getX` returns the nullable form of its ty
 ### Defaults from the environment
 
 A default may also be a string, read with the rules of an `s` value of the getter's type, so an environment
-variable can be passed as it is — `getInt('/db/port', getenv('DB_PORT') ?: null)`, or `env('DB_PORT')` in
-Laravel — without a cast that would turn an unset variable into `0`:
+variable can be passed as it is — `getInt('/db/port', getenv('DB_PORT') === false ? null : getenv('DB_PORT'))`
+(not `getenv('DB_PORT') ?: null`, which turns `"0"` into `null`; an empty variable already gives `null`), or
+`env('DB_PORT')` in Laravel — without a cast that would turn an unset variable into `0`:
 
 | Getter | A string default is read as | Examples |
 |---|---|---|
@@ -180,7 +181,11 @@ Laravel — without a cast that would turn an unset variable into `0`:
 - The return type follows the default for PHPStan and Psalm: `getInt('/p', 80)` and `getInt('/p', '80')` are
   `int`, `getInt('/p', $env)` with a `?string` is `?int`.
 - The parser is public: `Onlineconf\Type::Int->parseDefault($value, $path)` reads a default without a module,
-  as a framework integration needs for defaults it serves itself.
+  as a framework integration needs for defaults it serves itself. The supported surface of `Onlineconf\Type`
+  is its cases and `parseDefault()`; new cases may be added in a minor release, so do not `match` over all
+  of them without a `default` arm. `parseText()` and `label()` are public for the client's own use.
+- `getStrings()` takes any array of strings as a default and renumbers it, so
+  `array_filter(explode(',', ...))` works as before.
 
 Values in OnlineConf are stored with a type byte: `s` (text; numbers and booleans are text too) or `j`
 (JSON; YAML is converted to JSON by the updater). Rules, shared with the other OnlineConf clients:

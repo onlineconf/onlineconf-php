@@ -45,6 +45,8 @@ final class TypeDefaultTest extends TestCase
         yield 'DurationMs: units' => [Type::DurationMs, '1.5s', 1500];
         yield 'Strings: list' => [Type::Strings, ['a'], ['a']];
         yield 'Strings: empty list' => [Type::Strings, [], []];
+        yield 'Strings: strings with keys, as array_filter(explode()) leaves them' => [Type::Strings, [0 => 'a', 2 => 'c'], ['a', 'c']];
+        yield 'Strings: strings by name' => [Type::Strings, ['x' => 'a', 'y' => 'b'], ['a', 'b']];
         yield 'Strings: CSV' => [Type::Strings, 'a, b ,,c', ['a', 'b', 'c']];
         yield 'Strings: JSON' => [Type::Strings, '["a","b"]', ['a', 'b']];
         yield 'Strings: JSON after spaces' => [Type::Strings, ' ["x"]', ['x']];
@@ -80,7 +82,8 @@ final class TypeDefaultTest extends TestCase
         yield 'DurationMs: text' => [Type::DurationMs, 'abc', '/p: invalid default for duration_ms: invalid duration "abc"'];
         yield 'Strings: mixed JSON' => [Type::Strings, '["a",1]', '/p: invalid default for strings: not a JSON array of strings'];
         yield 'Strings: broken JSON' => [Type::Strings, '[bad', '/p: invalid default for strings: not a JSON array of strings'];
-        yield 'Strings: list of ints' => [Type::Strings, [1, 2], '/p: invalid default for strings: expected a list of strings'];
+        yield 'Strings: list of ints' => [Type::Strings, [1, 2], '/p: invalid default for strings: expected an array of strings'];
+        yield 'Strings: a string among others' => [Type::Strings, ['a', 1], '/p: invalid default for strings: expected an array of strings'];
         yield 'Array: text' => [Type::Array, 'text', '/p: invalid default for array: not a JSON array or object'];
         yield 'Array: broken JSON' => [Type::Array, '{bad', '/p: invalid default for array: not a JSON array or object'];
         yield 'Array: int' => [Type::Array, 5, '/p: invalid default for array: expected array or string, got int'];

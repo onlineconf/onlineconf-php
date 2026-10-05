@@ -330,6 +330,7 @@ abstract class ValuesTestCase extends TestCase
         self::assertSame(60.0, $this->module->getDuration('/missing', '1m'));
         self::assertSame(1000, $this->module->getDurationMs('/missing', '1s'));
         self::assertSame(['a', 'b'], $this->module->getStrings('/missing', 'a, b'));
+        self::assertSame(['a', 'b'], $this->module->getStrings('/missing', array_filter(explode(',', 'a,,b'), static fn (string $s): bool => $s !== '')), 'as 1.2 took it');
         self::assertSame(['k' => 1], $this->module->getArray('/missing', '{"k":1}'));
         self::assertNull($this->module->getInt('/missing', ''), 'an empty variable is not set');
         self::assertNull($this->module->getBool('/missing', ''));

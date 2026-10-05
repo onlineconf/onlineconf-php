@@ -60,13 +60,13 @@ final class Settings
     }
 
     /**
-     * ONLINECONF_REQUIRED: only "false" (any case) and "0" make the module file optional. Unset or empty — an
-     * empty variable counts as unset, as everywhere in this client — and anything else keep it required, so a
-     * typo cannot switch the check off.
+     * ONLINECONF_REQUIRED: only "false" (any case), Laravel's "(false)" and "0" make the module file optional.
+     * Unset or empty — an empty variable counts as unset, as everywhere in this client — and anything else keep
+     * it required, so a typo cannot switch the check off.
      */
     private static function required(string $value): bool
     {
-        return !in_array(strtolower($value), ['false', '0'], true);
+        return !in_array(strtolower($value), ['false', '(false)', '0'], true);
     }
 
     /**

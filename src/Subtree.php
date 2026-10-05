@@ -101,7 +101,7 @@ final class Subtree
     }
 
     /**
-     * @param list<string>|string|null $default
+     * @param array<string>|string|null $default
      *
      * @return ($default is array|non-empty-string ? list<string> : list<string>|null)
      *
