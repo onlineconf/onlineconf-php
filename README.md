@@ -86,8 +86,11 @@ Highest priority first:
    A missing or unreadable file, or one without `data_dir`, is skipped with a debug log entry and the next level applies.
 5. Built-in defaults: `/usr/local/etc/onlineconf`, `TREE`.
 
-Empty environment variables count as unset. A disabled client (see below) skips 2's `ONLINECONF_CONFIG` and 4:
-it reads no client config file.
+Empty environment variables count as unset.
+
+A disabled client (see «Switching the client off») reads no client config file: `ONLINECONF_CONFIG` from 2
+and the file from 4 are skipped, and the directory comes from 1, `ONLINECONF_DIR`, 3 or the built-in default.
+It only names the module, which is never opened.
 
 ### A missing module file: required or optional
 
