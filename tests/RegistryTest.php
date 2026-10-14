@@ -26,6 +26,7 @@ final class RegistryTest extends TestCase
 
     protected function tearDown(): void
     {
+        putenv('ONLINECONF_ENABLED');
         Onlineconf::reset();
         TempDir::remove($this->dir);
     }
@@ -82,5 +83,16 @@ final class RegistryTest extends TestCase
         Onlineconf::reset();
         Onlineconf::setDefaultDir($this->dir);
         self::assertNotSame($module, Onlineconf::module());
+    }
+
+    public function testADisabledClientGivesAnEmptyModule(): void
+    {
+        putenv('ONLINECONF_ENABLED=false');
+
+        $module = Onlineconf::module();
+
+        self::assertSame('disabled', $module->version());
+        self::assertSame('', $module->getString('/k', ''), 'TREE.cdb is there, but not opened');
+        self::assertSame($module, Onlineconf::module('TREE'));
     }
 }

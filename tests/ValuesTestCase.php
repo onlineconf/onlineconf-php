@@ -95,7 +95,7 @@ abstract class ValuesTestCase extends TestCase
         self::assertSame(' Привет, мир! ', $this->module->getString('/utf8', 'dfl'));
         self::assertSame('hello', $this->module->requireString('/str'));
         self::assertSame('dfl', $this->module->getString('/missing', 'dfl'));
-        self::assertSame([], $this->logger->records);
+        self::assertSame([], $this->logger->levels(), 'nothing logged');
     }
 
     public function testHas(): void
@@ -116,7 +116,7 @@ abstract class ValuesTestCase extends TestCase
         self::assertSame(PHP_INT_MAX, $this->module->getInt('/int/max', 0));
         self::assertSame(42, $this->module->requireInt('/int'));
         self::assertSame(-1, $this->module->getInt('/missing', -1));
-        self::assertSame([], $this->logger->records);
+        self::assertSame([], $this->logger->levels(), 'nothing logged');
     }
 
     /**
@@ -153,7 +153,7 @@ abstract class ValuesTestCase extends TestCase
         self::assertSame(3.0, $this->module->getFloat('/float/int', 0.0));
         self::assertSame(3.0, $this->module->requireFloat('/float/int'));
         self::assertSame(1.5, $this->module->getFloat('/missing', 1.5));
-        self::assertSame([], $this->logger->records);
+        self::assertSame([], $this->logger->levels(), 'nothing logged');
 
         self::assertSame(2.7, $this->module->getFloat('/float/space', 2.7));
         self::assertSame(2.7, $this->module->getFloat('/float/bad', 2.7));
@@ -175,7 +175,7 @@ abstract class ValuesTestCase extends TestCase
         self::assertTrue($this->module->requireBool('/bool/one'));
         self::assertTrue($this->module->getBool('/missing', true));
         self::assertFalse($this->module->getBool('/missing', false));
-        self::assertSame([], $this->logger->records);
+        self::assertSame([], $this->logger->levels(), 'nothing logged');
     }
 
     public function testDurationValues(): void
@@ -194,7 +194,7 @@ abstract class ValuesTestCase extends TestCase
         self::assertSame(-60000, $this->module->getDurationMs('/duration/neg', 0));
         self::assertSame(300, $this->module->requireDurationMs('/duration/ms'));
         self::assertSame(7, $this->module->getDurationMs('/missing', 7));
-        self::assertSame([], $this->logger->records);
+        self::assertSame([], $this->logger->levels(), 'nothing logged');
 
         self::assertSame(1.0, $this->module->getDuration('/duration/bad', 1.0));
         self::assertSame(1.0, $this->module->getDuration('/duration/empty', 1.0));
@@ -221,7 +221,7 @@ abstract class ValuesTestCase extends TestCase
         self::assertSame([], $this->module->getStrings('/empty', ['x']));
         self::assertSame(['a', 'b'], $this->module->requireStrings('/strings/json'));
         self::assertSame(['d'], $this->module->getStrings('/missing', ['d']));
-        self::assertSame([], $this->logger->records);
+        self::assertSame([], $this->logger->levels(), 'nothing logged');
 
         self::assertSame(['d'], $this->module->getStrings('/strings/object', ['d']));
         self::assertSame(['d'], $this->module->getStrings('/strings/mixed', ['d']));
@@ -240,7 +240,7 @@ abstract class ValuesTestCase extends TestCase
         self::assertSame([1, 2, 3], $this->module->getArray('/array/list', []));
         self::assertSame([1, 2, 3], $this->module->requireArray('/array/list'));
         self::assertSame(['d'], $this->module->getArray('/missing', ['d']));
-        self::assertSame([], $this->logger->records);
+        self::assertSame([], $this->logger->levels(), 'nothing logged');
 
         self::assertSame(['d'], $this->module->getArray('/str', ['d']));
         self::assertSame(['d'], $this->module->getArray('/array/scalar', ['d']));
@@ -264,7 +264,7 @@ abstract class ValuesTestCase extends TestCase
         self::assertSame('text', $this->module->get('/array/scalar', null));
         self::assertNull($this->module->get('/json/null', 'dfl'));
         self::assertSame('dfl', $this->module->get('/missing', 'dfl'));
-        self::assertSame([], $this->logger->records);
+        self::assertSame([], $this->logger->levels(), 'nothing logged');
 
         self::assertSame('dfl', $this->module->get('/cbor', 'dfl'));
         self::assertSame(["unexpected format 'c'"], $this->logger->reasons('warning'));
@@ -313,7 +313,7 @@ abstract class ValuesTestCase extends TestCase
         self::assertNull($get('/missing'), 'no default: null');
         self::assertNull($get('/missing', null), 'an explicit null default');
         self::assertSame($value, $get($present, null), 'a present node is read as always');
-        self::assertSame([], $this->logger->records);
+        self::assertSame([], $this->logger->levels(), 'nothing logged');
 
         self::assertNull($get($unparsable, null), 'an unparsable value gives the default');
         self::assertCount(1, $this->logger->records);

@@ -209,4 +209,58 @@ final class SettingsTest extends TestCase
     {
         self::assertTrue((new Settings('/dir', 'TREE'))->required);
     }
+
+    /**
+     * @return iterable<string, array{array<string, string>, bool}>
+     */
+    public static function enabledValues(): iterable
+    {
+        yield 'unset' => [[], true];
+        yield 'empty counts as unset' => [['ONLINECONF_ENABLED' => ''], true];
+        yield 'false' => [['ONLINECONF_ENABLED' => 'false'], false];
+        yield 'FALSE' => [['ONLINECONF_ENABLED' => 'FALSE'], false];
+        yield '0' => [['ONLINECONF_ENABLED' => '0'], false];
+        yield 'true' => [['ONLINECONF_ENABLED' => 'true'], true];
+        yield 'a typo stays enabled' => [['ONLINECONF_ENABLED' => 'no'], true];
+        yield "Laravel's (false)" => [['ONLINECONF_ENABLED' => '(false)'], false];
+    }
+
+    /**
+     * @param array<string, string> $env
+     */
+    #[DataProvider('enabledValues')]
+    public function testOnlyFalseOrZeroDisablesTheClient(array $env, bool $enabled): void
+    {
+        self::assertSame($enabled, $this->resolve($env)->enabled);
+    }
+
+    public function testEnabledByDefault(): void
+    {
+        self::assertTrue((new Settings('/dir', 'TREE'))->enabled);
+    }
+
+    public function testADisabledClientReadsNoClientConfig(): void
+    {
+        file_put_contents($this->configFile, "data_dir: /etc/oc\n");
+
+        $settings = $this->resolve(['ONLINECONF_ENABLED' => 'false', 'ONLINECONF_REQUIRED' => 'true']);
+
+        self::assertFalse($settings->enabled);
+        self::assertTrue($settings->required, 'kept as it is, though a disabled client opens no file');
+        self::assertSame(Settings::DEFAULT_DIR, $settings->dir, 'data_dir of ONLINECONF_CONFIG is not read');
+        self::assertSame([], $this->logger->records, 'nor is the default client config, so nothing is logged');
+    }
+
+    public function testADisabledClientKeepsTheDirectoryAndModuleItIsGiven(): void
+    {
+        $settings = $this->resolve([
+            'ONLINECONF_ENABLED' => '0',
+            'ONLINECONF_DIR' => '/etc/oc/',
+            'CDB_CONFIG_FILE' => '/elsewhere/custom.cdb',
+        ]);
+
+        self::assertSame('/etc/oc', $settings->dir);
+        self::assertSame('custom', $settings->module);
+        self::assertSame([], $this->logger->records);
+    }
 }

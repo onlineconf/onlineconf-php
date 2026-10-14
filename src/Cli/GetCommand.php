@@ -134,8 +134,9 @@ final class GetCommand
                     $output = $options['json'] || !is_string($value) ? Json::encode($value) : $value;
                 }
             }
-        } catch (NotFoundException) {
-            fwrite($stderr, "No such key\n");
+        } catch (NotFoundException $e) {
+            // A disabled client has no keys at all: say why rather than leave a key that is in the file a mystery
+            fwrite($stderr, ($module->version() === 'disabled' ? $e->getMessage() : 'No such key') . "\n");
 
             return self::NOT_FOUND;
         } catch (OnlineconfException $e) {

@@ -11,6 +11,7 @@ use Onlineconf\Exception\NotFoundException;
 use Onlineconf\Exception\OpenException;
 use Onlineconf\Exception\ParseException;
 use Onlineconf\Source\CdbSource;
+use Onlineconf\Source\DisabledSource;
 use Onlineconf\Source\MissingFileSource;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -82,6 +83,32 @@ final class Module
         }
 
         return new self(new MissingFileSource($file), $logger, $checkInterval);
+    }
+
+    /**
+     * The module of a name ("TREE" → "<dir>/TREE.cdb") or of a file path, opened as the settings say: by
+     * {@see fromFile()} in their required or optional mode, or — for a disabled client ({@see Settings::$enabled})
+     * — as an empty module that touches no file: get* give their defaults, require* say the client is disabled,
+     * version() is "disabled".
+     *
+     * @internal for integrations that open the module of their resolved settings
+     *
+     * @param int $checkInterval seconds between stat() checks for updates; 0 = check on every access
+     *
+     * @throws OpenException as {@see fromFile()} does, never for a disabled client
+     */
+    public static function fromSettings(
+        Settings $settings,
+        ?string $name = null,
+        ?LoggerInterface $logger = null,
+        int $checkInterval = self::DEFAULT_CHECK_INTERVAL,
+    ): self {
+        $file = $settings->fileName($name ?? $settings->module);
+        if (!$settings->enabled) {
+            return new self(new DisabledSource(basename($file, '.cdb')), $logger, $checkInterval);
+        }
+
+        return self::fromFile($file, $settings->required, $logger, $checkInterval);
     }
 
     public function name(): string
@@ -438,9 +465,7 @@ final class Module
         $raw = $this->raw($path);
         if ($raw === null) {
             if ($strict) {
-                throw new NotFoundException($this->message($path, $this->source instanceof MissingFileSource && $this->source->isMissing()
-                    ? sprintf('key not found: module file %s is missing', $this->source->file())
-                    : 'key not found'));
+                throw new NotFoundException($this->message($path, $this->notFoundReason()));
             }
 
             return $default;
@@ -558,7 +583,8 @@ final class Module
         $raw = $this->raw($listPath);
 
         if ($raw === null) {
-            if (!$this->childListsWarned && $this->raw('/') === null) {
+            // A disabled client has no tree at all, and the advice about onlineconf-updater would only mislead
+            if (!$this->childListsWarned && !$this->source instanceof DisabledSource && $this->raw('/') === null) {
                 $this->childListsWarned = true;
                 $this->logger->warning(sprintf('onlineconf: %s: child lists are not available (no "/" key); enable child_lists in onlineconf-updater', $this->name()));
             }
@@ -630,6 +656,21 @@ final class Module
     private static function nodePath(string $path): string
     {
         return rtrim($path, '/');
+    }
+
+    /**
+     * Why a required key is not there: the module file is missing, the client is disabled, or the key is absent.
+     */
+    private function notFoundReason(): string
+    {
+        if ($this->source instanceof MissingFileSource && $this->source->isMissing()) {
+            return sprintf('key not found: module file %s is missing', $this->source->file());
+        }
+        if ($this->source instanceof DisabledSource) {
+            return 'key not found: OnlineConf is disabled (ONLINECONF_ENABLED=false)';
+        }
+
+        return 'key not found';
     }
 
     private function message(string $path, string $text): string
