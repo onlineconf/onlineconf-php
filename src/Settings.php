@@ -17,7 +17,8 @@ use Psr\Log\LoggerInterface;
  *  5. built-in defaults: /usr/local/etc/onlineconf and TREE.
  *
  * Empty environment variables count as unset; a missing or unreadable client config file (or one without
- * data_dir) is skipped, so the next level applies.
+ * data_dir) is skipped, so the next level applies. A disabled client (ONLINECONF_ENABLED) reads no client config
+ * file: levels 2 and 4 give nothing, and the directory is only a name.
  */
 final class Settings
 {
@@ -28,11 +29,15 @@ final class Settings
     /**
      * @param bool $required the module file must exist ({@see Module::fromFile()}): ONLINECONF_REQUIRED unless it
      *                       is "false" or "0"
+     * @param bool $enabled  the client reads module files at all: ONLINECONF_ENABLED unless it is "false" or "0".
+     *                       A disabled client opens and checks no file, whatever $required says: its module is
+     *                       empty ({@see Module::fromSettings()})
      */
     public function __construct(
         public readonly string $dir,
         public readonly string $module,
         public readonly bool $required = true,
+        public readonly bool $enabled = true,
     ) {
     }
 
@@ -41,10 +46,11 @@ final class Settings
      */
     public static function resolve(array $env, ?string $dir, ?string $module, LoggerInterface $logger): self
     {
+        $enabled = !self::isOff($env['ONLINECONF_ENABLED'] ?? '');
         $dir ??= self::nonEmpty($env['ONLINECONF_DIR'] ?? '');
 
         $configFile = self::nonEmpty($env['ONLINECONF_CONFIG'] ?? '');
-        if ($dir === null && $configFile !== null) {
+        if ($enabled && $dir === null && $configFile !== null) {
             $dir = self::dirFromClientConfig($configFile, $logger);
         }
 
@@ -54,19 +60,24 @@ final class Settings
             $module ??= basename($cdbFile, '.cdb');
         }
 
-        $dir ??= self::dirFromClientConfig(self::DEFAULT_CONFIG_FILE, $logger) ?? self::DEFAULT_DIR;
+        if ($enabled) {
+            $dir ??= self::dirFromClientConfig(self::DEFAULT_CONFIG_FILE, $logger);
+        }
+        $dir ??= self::DEFAULT_DIR;
 
-        return new self(rtrim($dir, '/'), $module ?? self::DEFAULT_MODULE, self::required($env['ONLINECONF_REQUIRED'] ?? ''));
+        $required = !self::isOff($env['ONLINECONF_REQUIRED'] ?? '');
+
+        return new self(rtrim($dir, '/'), $module ?? self::DEFAULT_MODULE, $required, $enabled);
     }
 
     /**
-     * ONLINECONF_REQUIRED: only "false" (any case), Laravel's "(false)" and "0" make the module file optional.
-     * Unset or empty — an empty variable counts as unset, as everywhere in this client — and anything else keep
-     * it required, so a typo cannot switch the check off.
+     * ONLINECONF_REQUIRED and ONLINECONF_ENABLED: only "false" (any case), Laravel's "(false)" and "0" switch them
+     * off. Unset or empty — an empty variable counts as unset, as everywhere in this client — and anything else
+     * keep them on, so a typo or a variable a template left empty cannot switch the check or the client off.
      */
-    private static function required(string $value): bool
+    private static function isOff(string $value): bool
     {
-        return !in_array(strtolower($value), ['false', '(false)', '0'], true);
+        return in_array(strtolower($value), ['false', '(false)', '0'], true);
     }
 
     /**

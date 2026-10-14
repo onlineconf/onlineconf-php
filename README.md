@@ -86,7 +86,8 @@ Highest priority first:
    A missing or unreadable file, or one without `data_dir`, is skipped with a debug log entry and the next level applies.
 5. Built-in defaults: `/usr/local/etc/onlineconf`, `TREE`.
 
-Empty environment variables count as unset.
+Empty environment variables count as unset. A disabled client (see below) skips 2's `ONLINECONF_CONFIG` and 4:
+it reads no client config file.
 
 ### A missing module file: required or optional
 
@@ -101,9 +102,24 @@ file means; `Settings::$required` carries the choice from the environment:
 An optional module looks for its file again on every update check (`check_interval`, as for any module) and
 serves it once it is there, so a worker started before `onlineconf-updater` delivered the tree picks it up
 without a restart. A file that is there but cannot be opened is an error in both modes — a broken delivery,
-not a missing one. Only a typo-proof `false`/`0` switches the check off: development machines and CI, which
-have no OnlineConf at all, set it; production does not. The static registry `Onlineconf::module()` keeps
-opening files as before.
+not a missing one. Only a typo-proof `false`/`0` switches the check off: hosts that may get a tree later
+set it; production does not. The static registry `Onlineconf::module()` ignores `ONLINECONF_REQUIRED` and keeps
+opening files as before; `ONLINECONF_ENABLED` below does apply to it.
+
+### Switching the client off
+
+Development machines, CI and image builds that have no OnlineConf at all set `ONLINECONF_ENABLED=false`
+(`false` in any case, `(false)` or `0`; unset, empty or anything else keep the client on, so a variable a
+template left empty cannot switch it off). `Settings::$enabled` carries it, and `Onlineconf::module()` then
+gives an empty module that touches no file — not the module file, not the client config, not even a check
+whether either appeared:
+
+- `get*` give their defaults, without a log line;
+- `require*` throw `NotFoundException`: `<path>: key not found: OnlineConf is disabled (ONLINECONF_ENABLED=false)`;
+- `version()` is `"disabled"`, and a reload never happens.
+
+`ONLINECONF_REQUIRED` does not matter then: there is no file to require. `onlineconf-get` says the client is
+disabled instead of "No such key".
 
 A module name without `/` is a file in the directory; a name with `/` is a path. `.cdb` is appended
 when the name has no extension (`TREE` → `TREE.cdb`, `custom.db` stays as is and is still read as CDB).

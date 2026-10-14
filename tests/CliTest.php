@@ -173,4 +173,18 @@ final class CliTest extends TestCase
         exec(sprintf('%s %s --dir=%s --bool /app/off', escapeshellarg(PHP_BINARY), escapeshellarg($bin), escapeshellarg($this->dir)), $output, $code);
         self::assertSame(1, $code);
     }
+
+    public function testADisabledClientSaysWhyTheKeyIsNotThere(): void
+    {
+        putenv('ONLINECONF_ENABLED=false');
+        try {
+            [$code, $out, $err] = $this->execute(['/app/name']);
+        } finally {
+            putenv('ONLINECONF_ENABLED');
+        }
+
+        self::assertSame(1, $code);
+        self::assertSame('', $out);
+        self::assertStringContainsString('OnlineConf is disabled (ONLINECONF_ENABLED=false)', $err);
+    }
 }

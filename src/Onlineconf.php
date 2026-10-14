@@ -32,6 +32,7 @@ final class Onlineconf
 
     /**
      * Opens a module by name ("TREE" → "<dir>/TREE.cdb") or by file path, or returns the already opened one.
+     * A disabled client (ONLINECONF_ENABLED=false) gives an empty module that touches no file.
      *
      * @throws OpenException
      */
@@ -39,12 +40,15 @@ final class Onlineconf
     {
         $settings = self::settings();
         $file = $settings->fileName($name ?? $settings->module);
-        $key = realpath($file);
+        // A disabled client touches no file, not even to resolve its real path
+        $key = $settings->enabled ? realpath($file) : false;
         if ($key === false) {
             $key = $file;
         }
 
-        return self::$modules[$key] ??= new Module(new CdbSource($key), self::logger(), self::$checkInterval);
+        return self::$modules[$key] ??= $settings->enabled
+            ? new Module(new CdbSource($key), self::logger(), self::$checkInterval)
+            : Module::fromSettings($settings, $file, self::logger(), self::$checkInterval);
     }
 
     public static function setDefaultDir(string $dir): void

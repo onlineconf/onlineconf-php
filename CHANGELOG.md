@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.1 — 2026-10-14
+
+### Fixed
+
+- A client on a host without OnlineConf — a developer machine, CI, an image build — can be switched off with
+  `ONLINECONF_ENABLED=false` (`false` in any case, `(false)` or `0`; unset, empty or anything else keep it on).
+  It then touches no file: the client config `/usr/local/etc/onlineconf.yaml` is not read, so its "not
+  readable" debug line is gone, and the module is empty — `get*` give their defaults, `require*` throw
+  `NotFoundException` that says the client is disabled, `version()` is `"disabled"`, no reload, no log line.
+  `ONLINECONF_REQUIRED` does not matter then. Carried by `Settings::$enabled`; `Onlineconf::module()` and the
+  internal `Module::fromSettings()`, for integrations that open the module of their settings, honour it.
+
 ## 1.3.0 — 2026-10-05
 
 ### Added
