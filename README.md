@@ -46,6 +46,7 @@ $port    = $tree->getInt('/my/service/db/port', 3306);
 $enabled = $tree->getBool('/my/service/enabled', false);
 $timeout = $tree->getDurationMs('/my/service/http/timeout', 5000);   // "1.5s" → 1500
 $hosts   = $tree->getStrings('/my/service/hosts', []);              // "a, b" or ["a","b"]
+$ports   = $tree->getInts('/my/service/ports', []);                 // "80, 443" or [80,443]
 $opts    = $tree->getArray('/my/service/options', []);              // JSON value
 
 $svc = $tree->subtree('/my/service');
@@ -160,6 +161,7 @@ They are built from the test fixtures by `php examples/build.php`; a test keeps 
 | `getDuration($path, float\|string\|null $default = null)` | seconds as `float` | `s` duration with units, see below |
 | `getDurationMs($path, int\|string\|null $default = null)` | milliseconds as `int` | same, rounded to the nearest ms |
 | `getStrings($path, array\|string\|null $default = null)` | `list<string>` | `s` comma-separated (trimmed, empties dropped) or `j` array of strings |
+| `getInts($path, array\|string\|null $default = null)` | `list<int>` | `s` comma-separated (trimmed, empties dropped) or `j` array; an element is an integer or a string matching `^[+-]?\d+$` |
 | `getArray($path, array\|string\|null $default = null)` | `array` | `j` object or array, `json_decode(..., true)` |
 | `get($path, mixed $default)` | `mixed` | `s` → string, `j` → decoded JSON; no validation |
 | `has($path)` | `bool` | key exists (any type) |
@@ -187,6 +189,7 @@ variable can be passed as it is — `getInt('/db/port', getenv('DB_PORT') === fa
 | `getFloat`, `getDuration` | an `s` value: a number, a duration | `"0.5"` → `0.5`, `"1m"` → `60.0` |
 | `getBool` | `"1"` or `"0"` only — stricter than a node, where any other text is true | `"0"` → `false` |
 | `getStrings` | comma-separated, or a JSON array of strings when it starts with `[` | `"a, b"` → `["a", "b"]` |
+| `getInts` | comma-separated, or a JSON array of integers when it starts with `[` | `"80, 443"` → `[80, 443]` |
 | `getArray` | JSON | `'{"pool":5}'` → `["pool" => 5]` |
 
 - `null` and `""` give `null`: an empty variable is an unset one. `getString()` takes its default as it is,
@@ -202,17 +205,20 @@ variable can be passed as it is — `getInt('/db/port', getenv('DB_PORT') === fa
 - The parser is public: `Onlineconf\Type::Int->parseDefault($value, $path)` reads a default without a module,
   as a framework integration needs for defaults it serves itself. The supported surface of `Onlineconf\Type`
   is its cases and `parseDefault()`; new cases may be added in a minor release, so do not `match` over all
-  of them without a `default` arm. `parseText()` and `label()` are public for the client's own use.
+  of them without a `default` arm. `parseText()`, `intList()` and `label()` are public for the client's own
+  use.
 - `getStrings()` takes any array of strings as a default and renumbers it, so
   `array_filter(explode(',', ...))` works as before.
+- `getInts()` takes any array of integers as a default and renumbers it; a string element is read as an
+  integer too, so `explode(',', ...)` works without `array_map('intval', ...)`.
 
 Values in OnlineConf are stored with a type byte: `s` (text; numbers and booleans are text too) or `j`
 (JSON; YAML is converted to JSON by the updater). Rules, shared with the other OnlineConf clients:
 
 - **Getters with a default never throw** (with one exception, below). Missing key, wrong type byte
   (`j` where a string is expected, `s` where JSON is expected, an unknown byte such as `c`) or a string
-  that does not parse (`"3O"` for `getInt`, `"1d"` for `getDuration`) all return the default and log a
-  `warning`. This is why the typed getters exist: `(int) "abc"` silently gives `0`, `getInt` gives your
+  that does not parse (`"3O"` for `getInt`, `"1d"` for `getDuration`, one bad element for `getInts`) all
+  return the default and log a `warning`. This is why the typed getters exist: `(int) "abc"` silently gives `0`, `getInt` gives your
   default and a log line.
 - **The default is optional and may be `null`.** `getString('/key')` or `getString('/key', env('KEY'))`
   with an unset variable returns `null` when the key is missing or does not parse (with the same warning),
@@ -224,8 +230,8 @@ Values in OnlineConf are stored with a type byte: `s` (text; numbers and boolean
   missing key must fail the start.
 - **Invalid JSON is critical.** A `j` value (or a child list) that is not valid JSON throws
   `InvalidJsonException` from every method that decodes it — including `get()`, `getArray()`,
-  `getStrings()`, `children()` and `getTree()` with a default. The updater validates JSON when it writes
-  the file, so broken JSON means a broken delivery pipeline, and a silent default would be worse than a
+  `getStrings()`, `getInts()`, `children()` and `getTree()` with a default. The updater validates JSON when
+  it writes the file, so broken JSON means a broken delivery pipeline, and a silent default would be worse than a
   failure. Methods that do not decode the value (`has()`, `getString()`, `walk()`) do not check it.
   Nothing is cached on error; after the file is replaced the call is retried.
 - **Duration**: see the next section.

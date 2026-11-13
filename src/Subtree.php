@@ -113,6 +113,19 @@ final class Subtree
     }
 
     /**
+     * @param array<int|string>|string|null $default
+     *
+     * @return ($default is array|non-empty-string ? list<int> : list<int>|null)
+     *
+     * @throws InvalidJsonException
+     * @throws \Onlineconf\Exception\InvalidDefaultException
+     */
+    public function getInts(string $path, array|string|null $default = null): ?array
+    {
+        return $this->module->getInts($this->path($path), $default);
+    }
+
+    /**
      * @param array<mixed>|string|null $default
      *
      * @return ($default is array|non-empty-string ? array<mixed> : array<mixed>|null)
@@ -197,6 +210,16 @@ final class Subtree
     public function requireStrings(string $path): array
     {
         return $this->module->requireStrings($this->path($path));
+    }
+
+    /**
+     * @return list<int>
+     *
+     * @throws NotFoundException|FormatException|ParseException|InvalidJsonException
+     */
+    public function requireInts(string $path): array
+    {
+        return $this->module->requireInts($this->path($path));
     }
 
     /**

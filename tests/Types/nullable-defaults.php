@@ -45,6 +45,12 @@ function moduleGetters(Module $module, ?string $maybe, ?string $env): void
     assertType('list<string>', $module->getStrings('/p', []));
     assertType('list<string>', $module->getStrings('/p', 'a,b'));
     assertType('list<string>|null', $module->getStrings('/p', $env));
+    assertType('list<int>', $module->getInts('/p', []));
+    assertType('list<int>', $module->getInts('/p', [1, 2]));
+    assertType('list<int>', $module->getInts('/p', '1,2'));
+    assertType('list<int>|null', $module->getInts('/p'));
+    assertType('list<int>|null', $module->getInts('/p', $env));
+    assertType('list<int>', $module->requireInts('/p'));
     assertType('array<mixed>', $module->getArray('/p', []));
     assertType('array<mixed>', $module->getArray('/p', '{"a":1}'));
     assertType('array<mixed>|null', $module->getArray('/p', $env));
@@ -66,6 +72,9 @@ function subtreeGetters(Subtree $subtree, ?string $env): void
     assertType('int|null', $subtree->getDurationMs('/p'));
     assertType('list<string>', $subtree->getStrings('/p', 'a'));
     assertType('list<string>|null', $subtree->getStrings('/p'));
+    assertType('list<int>', $subtree->getInts('/p', '1'));
+    assertType('list<int>|null', $subtree->getInts('/p'));
+    assertType('list<int>', $subtree->requireInts('/p'));
     assertType('array<mixed>', $subtree->getArray('/p', []));
     assertType('array<mixed>|null', $subtree->getArray('/p', $env));
 }

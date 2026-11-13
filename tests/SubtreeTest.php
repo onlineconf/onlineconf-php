@@ -24,6 +24,7 @@ final class SubtreeTest extends TestCase
             '/my/service/ratio' => '0.25',
             '/my/service/delay' => '1.5s',
             '/my/service/tags' => 'a,b',
+            '/my/service/ports' => '80, 443',
             '/my/service/db/host' => 'db.local',
             '/my/service/db/opts' => ['pool' => 5],
             '/other' => 'x',
@@ -71,6 +72,7 @@ final class SubtreeTest extends TestCase
         self::assertSame(1.5, $svc->getDuration('/delay', 0.0));
         self::assertSame(1500, $svc->getDurationMs('/delay', 0));
         self::assertSame(['a', 'b'], $svc->getStrings('/tags', []));
+        self::assertSame([80, 443], $svc->getInts('/ports', []));
         self::assertSame(['pool' => 5], $svc->getArray('/db/opts', []));
         self::assertSame('db.local', $svc->get('/db/host', null));
         self::assertSame('db.local', $svc->require('/db/host'));
@@ -82,9 +84,10 @@ final class SubtreeTest extends TestCase
         self::assertSame(1.5, $svc->requireDuration('/delay'));
         self::assertSame(1500, $svc->requireDurationMs('/delay'));
         self::assertSame(['a', 'b'], $svc->requireStrings('/tags'));
+        self::assertSame([80, 443], $svc->requireInts('/ports'));
         self::assertSame(['pool' => 5], $svc->requireArray('/db/opts'));
 
-        self::assertSame(['db', 'delay', 'ratio', 'tags', 'timeout'], $svc->children(''));
+        self::assertSame(['db', 'delay', 'ports', 'ratio', 'tags', 'timeout'], $svc->children(''));
         self::assertSame(['host', 'opts'], $svc->children('/db'));
         self::assertSame(['host' => 'db.local', 'opts' => ['pool' => 5]], $svc->getTree('/db'));
 
@@ -109,6 +112,7 @@ final class SubtreeTest extends TestCase
         self::assertNull($svc->getDuration('/missing'));
         self::assertNull($svc->getDurationMs('/missing'));
         self::assertNull($svc->getStrings('/missing'));
+        self::assertNull($svc->getInts('/missing'));
         self::assertNull($svc->getArray('/missing'));
         self::assertSame(30, $svc->getInt('/timeout'), 'a present node is read as always');
     }
@@ -123,6 +127,7 @@ final class SubtreeTest extends TestCase
         self::assertSame(2.0, $svc->getDuration('/missing', '2s'));
         self::assertSame(2000, $svc->getDurationMs('/missing', '2s'));
         self::assertSame(['x', 'y'], $svc->getStrings('/missing', 'x,y'));
+        self::assertSame([1, 2], $svc->getInts('/missing', '1,2'));
         self::assertSame([1], $svc->getArray('/missing', '[1]'));
     }
 
