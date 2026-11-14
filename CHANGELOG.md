@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.4.0 — unreleased
+
+### Added
+
+- `getInts()` and `requireInts()`, on `Module` and `Subtree`: a list of integers, the counterpart of
+  `getStrings()`. The node is a comma-separated `s` value (`80, 443`: items trimmed, empty ones dropped) or a
+  `j` array; an element is an integer, or a string read as `getInt()` reads a node (`^[+-]?\d+$`, within the
+  integer range). Nothing is cast silently: a fraction, text, a boolean, a nested value or a JSON object makes
+  the whole value unreadable — `getInts()` logs a `warning` and returns the default, `requireInts()` throws
+  `ParseException` for a comma-separated value and `FormatException` for a JSON one. The default is an array of
+  integers (or of strings that read as one), a comma-separated string or a JSON array; one that does not read
+  is an `InvalidDefaultException` that does not repeat the value.
+- `Type::Ints`, the type behind them, read by `Type::parseDefault()` as well.
+
 ## 1.3.1 — 2026-10-14
 
 ### Fixed

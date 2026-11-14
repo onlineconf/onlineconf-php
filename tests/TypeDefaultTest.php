@@ -19,7 +19,7 @@ final class TypeDefaultTest extends TestCase
      */
     public static function valid(): iterable
     {
-        foreach ([Type::Int, Type::Float, Type::Bool, Type::Duration, Type::DurationMs, Type::Strings, Type::Array] as $type) {
+        foreach ([Type::Int, Type::Float, Type::Bool, Type::Duration, Type::DurationMs, Type::Strings, Type::Ints, Type::Array] as $type) {
             yield $type->name . ': null' => [$type, null, null];
             yield $type->name . ': empty string is not set' => [$type, '', null];
         }
@@ -50,6 +50,15 @@ final class TypeDefaultTest extends TestCase
         yield 'Strings: CSV' => [Type::Strings, 'a, b ,,c', ['a', 'b', 'c']];
         yield 'Strings: JSON' => [Type::Strings, '["a","b"]', ['a', 'b']];
         yield 'Strings: JSON after spaces' => [Type::Strings, ' ["x"]', ['x']];
+        yield 'Ints: list' => [Type::Ints, [1, 2], [1, 2]];
+        yield 'Ints: empty list' => [Type::Ints, [], []];
+        yield 'Ints: with keys, as array_filter() leaves them' => [Type::Ints, [0 => 1, 2 => 3], [1, 3]];
+        yield 'Ints: strings, as explode() gives them' => [Type::Ints, ['1', '-2', '+3', '007'], [1, -2, 3, 7]];
+        yield 'Ints: CSV' => [Type::Ints, '1, 2 ,,-3', [1, 2, -3]];
+        yield 'Ints: one number' => [Type::Ints, '42', [42]];
+        yield 'Ints: JSON' => [Type::Ints, '[1,2]', [1, 2]];
+        yield 'Ints: JSON strings' => [Type::Ints, '["1","2"]', [1, 2]];
+        yield 'Ints: JSON after spaces' => [Type::Ints, ' [5]', [5]];
         yield 'Array: array' => [Type::Array, ['k' => 1], ['k' => 1]];
         yield 'Array: JSON object' => [Type::Array, '{"pool":5}', ['pool' => 5]];
         yield 'Array: JSON list' => [Type::Array, '[1,2]', [1, 2]];
@@ -84,6 +93,17 @@ final class TypeDefaultTest extends TestCase
         yield 'Strings: broken JSON' => [Type::Strings, '[bad', '/p: invalid default for strings: not a JSON array of strings'];
         yield 'Strings: list of ints' => [Type::Strings, [1, 2], '/p: invalid default for strings: expected an array of strings'];
         yield 'Strings: a string among others' => [Type::Strings, ['a', 1], '/p: invalid default for strings: expected an array of strings'];
+        yield 'Ints: CSV with text' => [Type::Ints, '1,abc', '/p: invalid default for ints: not a comma-separated list of integers'];
+        yield 'Ints: CSV with a fraction' => [Type::Ints, '1,2.5', '/p: invalid default for ints: not a comma-separated list of integers'];
+        yield 'Ints: JSON with a float' => [Type::Ints, '[1,2.5]', '/p: invalid default for ints: not a JSON array of integers'];
+        yield 'Ints: JSON with text' => [Type::Ints, '[1,"a"]', '/p: invalid default for ints: not a JSON array of integers'];
+        yield 'Ints: JSON object' => [Type::Ints, ' {"a":1}', '/p: invalid default for ints: not a comma-separated list of integers'];
+        yield 'Ints: JSON object in brackets' => [Type::Ints, '[{"a":1}]', '/p: invalid default for ints: not a JSON array of integers'];
+        yield 'Ints: broken JSON' => [Type::Ints, '[1', '/p: invalid default for ints: not a JSON array of integers'];
+        yield 'Ints: list of floats' => [Type::Ints, [1.5], '/p: invalid default for ints: expected an array of integers'];
+        yield 'Ints: text among numbers' => [Type::Ints, [1, 'a'], '/p: invalid default for ints: expected an array of integers'];
+        yield 'Ints: bool' => [Type::Ints, [true], '/p: invalid default for ints: expected an array of integers'];
+        yield 'Ints: int' => [Type::Ints, 5, '/p: invalid default for ints: expected an array of integers'];
         yield 'Array: text' => [Type::Array, 'text', '/p: invalid default for array: not a JSON array or object'];
         yield 'Array: broken JSON' => [Type::Array, '{bad', '/p: invalid default for array: not a JSON array or object'];
         yield 'Array: int' => [Type::Array, 5, '/p: invalid default for array: expected array or string, got int'];
@@ -100,7 +120,7 @@ final class TypeDefaultTest extends TestCase
 
     public function testStringAndArrayDefaultsAreNotRepeatedInTheMessage(): void
     {
-        foreach ([[Type::Strings, '["s3cret",1]'], [Type::Array, 's3cret']] as [$type, $default]) {
+        foreach ([[Type::Strings, '["s3cret",1]'], [Type::Ints, '1,s3cret'], [Type::Ints, ['s3cret']], [Type::Array, 's3cret']] as [$type, $default]) {
             try {
                 $type->parseDefault($default, '/p');
                 self::fail('the default does not parse');

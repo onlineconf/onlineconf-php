@@ -236,6 +236,23 @@ final class Module
     }
 
     /**
+     * A comma-separated `s` value ("1, 2,3") or a `j` array. An element is an integer, or a string read as
+     * {@see getInt()} reads a node; anything else makes the whole value unreadable.
+     *
+     * @param array<int|string>|string|null $default
+     *
+     * @return ($default is array|non-empty-string ? list<int> : list<int>|null)
+     *
+     * @throws InvalidJsonException
+     * @throws InvalidDefaultException when the default does not read as list<int>
+     */
+    public function getInts(string $path, array|string|null $default = null): ?array
+    {
+        /** @var list<int>|null */
+        return $this->lookup($path, Type::Ints, Type::Ints->parseDefault($default, $path), false);
+    }
+
+    /**
      * A `j` value decoded with json_decode(..., true).
      *
      * @param array<mixed>|string|null $default
@@ -334,6 +351,17 @@ final class Module
     {
         /** @var list<string> */
         return $this->lookup($path, Type::Strings, null, true);
+    }
+
+    /**
+     * @return list<int>
+     *
+     * @throws NotFoundException|FormatException|ParseException|InvalidJsonException
+     */
+    public function requireInts(string $path): array
+    {
+        /** @var list<int> */
+        return $this->lookup($path, Type::Ints, null, true);
     }
 
     /**
@@ -514,6 +542,12 @@ final class Module
         }
         if ($type === Type::Strings && $format === 'j') {
             return $this->decodeJsonStrings($path, $format, $data);
+        }
+        if ($type === Type::Ints && $format === 'j') {
+            $value = $this->decodeJson($path, $format, $data);
+
+            return (is_array($value) && array_is_list($value) ? Type::intList($value) : null)
+                ?? throw new FormatException($this->message($path, 'JSON value is not an array of integers'));
         }
         if ($format !== 's') {
             throw new FormatException($this->message($path, 'format is not a string'));

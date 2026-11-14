@@ -79,6 +79,13 @@ abstract class ValuesTestCase extends TestCase
             '/strings/json' => 'j["a","b"]',
             '/strings/object' => 'j{"a":1}',
             '/strings/mixed' => 'j["a",1]',
+            '/ints/csv' => 's1, -2 ,,+3,007',
+            '/ints/json' => 'j[1,-2,3]',
+            '/ints/strings' => 'j["1","-2","+3"]',
+            '/ints/float' => 'j[1,2.5]',
+            '/ints/text' => 'j[1,"a"]',
+            '/ints/object' => 'j{"a":1}',
+            '/ints/bad' => 's1,abc',
             '/array/object' => 'j{"pool":5,"hosts":["a","b"]}',
             '/array/list' => 'j[1,2,3]',
             '/array/scalar' => 'j"text"',
@@ -234,6 +241,66 @@ abstract class ValuesTestCase extends TestCase
         $this->module->requireStrings('/strings/object');
     }
 
+    public function testIntsValues(): void
+    {
+        self::assertSame([1, -2, 3, 7], $this->module->getInts('/ints/csv', []));
+        self::assertSame([1, -2, 3], $this->module->getInts('/ints/json', []));
+        self::assertSame([1, -2, 3], $this->module->getInts('/ints/strings', []), 'a string element is read like getInt() reads a node');
+        self::assertSame([42], $this->module->getInts('/int', []));
+        self::assertSame([], $this->module->getInts('/empty', [9]));
+        self::assertSame([1, -2, 3], $this->module->requireInts('/ints/json'));
+        self::assertSame([1, -2, 3, 7], $this->module->requireInts('/ints/csv'));
+        self::assertSame([9], $this->module->getInts('/missing', [9]));
+        self::assertSame([], $this->logger->levels(), 'nothing logged');
+
+        self::assertSame([9], $this->module->getInts('/ints/object', [9]));
+        self::assertSame([9], $this->module->getInts('/ints/float', [9]));
+        self::assertSame([9], $this->module->getInts('/ints/text', [9]));
+        self::assertSame([9], $this->module->getInts('/array/scalar', [9]));
+        self::assertSame([9], $this->module->getInts('/ints/bad', [9]));
+        self::assertSame([9], $this->module->getInts('/int/float', [9]));
+        self::assertSame([9], $this->module->getInts('/int/overflow', [9]));
+        self::assertSame([9], $this->module->getInts('/cbor', [9]));
+        self::assertSame(
+            [
+                'JSON value is not an array of integers',
+                'JSON value is not an array of integers',
+                'JSON value is not an array of integers',
+                'JSON value is not an array of integers',
+                '"abc" is not an integer',
+                '"12.5" is not an integer',
+                '"99999999999999999999" is out of integer range',
+                'format is not a string',
+            ],
+            $this->logger->reasons('warning'),
+        );
+    }
+
+    /**
+     * @return iterable<string, array{string, class-string<\Throwable>, string}>
+     */
+    public static function unreadableInts(): iterable
+    {
+        yield 'JSON object' => ['/ints/object', FormatException::class, ':/ints/object: JSON value is not an array of integers'];
+        yield 'JSON float' => ['/ints/float', FormatException::class, ':/ints/float: JSON value is not an array of integers'];
+        yield 'JSON text' => ['/ints/text', FormatException::class, ':/ints/text: JSON value is not an array of integers'];
+        yield 'CSV text' => ['/ints/bad', ParseException::class, ':/ints/bad: "abc" is not an integer'];
+        yield 'unknown format' => ['/cbor', FormatException::class, ':/cbor: format is not a string'];
+        yield 'missing' => ['/missing', NotFoundException::class, ':/missing: key not found'];
+    }
+
+    /**
+     * @param class-string<\Throwable> $exception
+     */
+    #[DataProvider('unreadableInts')]
+    public function testRequireIntsThrows(string $path, string $exception, string $message): void
+    {
+        $this->expectException($exception);
+        $this->expectExceptionMessage($message);
+
+        $this->module->requireInts($path);
+    }
+
     public function testArrayValues(): void
     {
         self::assertSame(['pool' => 5, 'hosts' => ['a', 'b']], $this->module->getArray('/array/object', []));
@@ -301,6 +368,7 @@ abstract class ValuesTestCase extends TestCase
         yield 'getDuration' => ['getDuration', '/duration/seconds', 30.0, '/duration/bad'];
         yield 'getDurationMs' => ['getDurationMs', '/duration/ms', 300, '/duration/bad'];
         yield 'getStrings' => ['getStrings', '/strings/json', ['a', 'b'], '/strings/object'];
+        yield 'getInts' => ['getInts', '/ints/csv', [1, -2, 3, 7], '/ints/object'];
         yield 'getArray' => ['getArray', '/array/list', [1, 2, 3], '/str'];
     }
 
@@ -331,6 +399,10 @@ abstract class ValuesTestCase extends TestCase
         self::assertSame(1000, $this->module->getDurationMs('/missing', '1s'));
         self::assertSame(['a', 'b'], $this->module->getStrings('/missing', 'a, b'));
         self::assertSame(['a', 'b'], $this->module->getStrings('/missing', array_filter(explode(',', 'a,,b'), static fn (string $s): bool => $s !== '')), 'as 1.2 took it');
+        self::assertSame([1, 2], $this->module->getInts('/missing', '1, 2'));
+        self::assertSame([1, 2], $this->module->getInts('/missing', '[1,2]'));
+        self::assertSame([1, 2], $this->module->getInts('/missing', ['1', '2']), 'as explode() gives them');
+        self::assertNull($this->module->getInts('/missing', ''));
         self::assertSame(['k' => 1], $this->module->getArray('/missing', '{"k":1}'));
         self::assertNull($this->module->getInt('/missing', ''), 'an empty variable is not set');
         self::assertNull($this->module->getBool('/missing', ''));
@@ -383,6 +455,8 @@ abstract class ValuesTestCase extends TestCase
         yield 'require' => [static fn (Module $m): mixed => $m->require('/json/broken')];
         yield 'getArray' => [static fn (Module $m): mixed => $m->getArray('/json/broken', [])];
         yield 'getStrings' => [static fn (Module $m): mixed => $m->getStrings('/json/broken', [])];
+        yield 'getInts' => [static fn (Module $m): mixed => $m->getInts('/json/broken', [])];
+        yield 'requireInts' => [static fn (Module $m): mixed => $m->requireInts('/json/broken')];
         yield 'requireArray' => [static fn (Module $m): mixed => $m->requireArray('/json/broken')];
         yield 'requireStrings' => [static fn (Module $m): mixed => $m->requireStrings('/json/broken')];
     }
